@@ -41,8 +41,20 @@ plan missing APIs in Mamba.
     - ``bin/`` -> ``?``
     - ``lib/`` -> ``?``
     - ``lib/pythonX.YY/site-packages/`` -> ``?``
+    - ``info/`` -> ``?``
 - Create wheel from "_would have been_" environment.
 - Optionally test wheel:
   - Create Mamba environment with ``python`` and ``pip``/``uv``,
   - Install the wheel,
   - Test ``import``s.
+
+## Mamba missing APIs
+- [x] Context
+- [x] ChannelContext
+- [ ] ``load_channels``
+- [x] ``Database``
+- [x] ``Request``
+- [x] ``Solver``
+- [x] ``Solution``
+- [x] ``MTransaction::fetch_extract_packages``
+- [ ] ``LinkPackage``, ``PathData``, TBD
