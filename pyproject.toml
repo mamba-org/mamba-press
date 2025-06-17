@@ -25,11 +25,13 @@ select = ["E", "W", "F", "B", "C90", "I", "YTT", "PT", "D"]
 ignore = [
   "D100", # Module docstrings
   "D107", # Magic methods docstring
+  "D203", # Blank line after class convention is D211
+  "D213", # Docstring summary convention is D212
 ]
 
 [tool.pixi.project]
-channels = ["https://fast.prefix.dev/conda-forge"]
-platforms = ["osx-arm64", "linux-64"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
@@ -40,12 +42,13 @@ mamba_press = { path = ".", editable = true }
 
 [tool.pixi.dependencies]
 python = ">=3.12.3"
-libmambapy = ">=2.2"
+libmambapy = ">=2.3.0"
 
 [tool.pixi.feature.test.dependencies]
 ruff = ">=0.4.7"
 pytest = ">=8.3.0"
 mypy = ">=1.11.0"
+libmambapy-stubs = "*"
 pre-commit = ">=3.8.0,<4.0"
 taplo = ">=0.9.2,<0.10"
 typos = ">=1.31.2,<2"
@@ -54,20 +57,18 @@ typos = ">=1.31.2,<2"
 # Formatters
 fmt-ruff = "ruff format"
 fmt-taplo = "taplo fmt"
-fmt = { depends-on = ["fmt-ruff", "fmt-taplo"] }
+fmt = [{ task = "fmt-ruff" }, { task = "fmt-taplo" }]
 # Checkers
 check-ruff-format = "ruff format --check"
 check-ruff = "ruff check"
 check-mypy = "python -m mypy ."
 check-typos = "typos --write-changes"
-check-precommit = "pre-commit run --all-files --show-diff-on-failure"
-check = { depends-on = [
-  "check-ruff-format",
-  "check-ruff",
-  "check-mypy",
-  "check-typos",
-  "check-precommit",
-] }
+check = [
+  { task = "check-ruff-format" },
+  { task = "check-ruff" },
+  { task = "check-mypy" },
+  { task = "check-typos" },
+]
 # Tests
 test-pytest = "python -m pytest"
 test = { depends-on = ["test-pytest"] }
