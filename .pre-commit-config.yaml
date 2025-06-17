@@ -1,0 +1,43 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.33.0
+    hooks:
+      - id: check-github-workflows
+  - repo: local
+    hooks:
+      # Running common tools though pixi so that they are in sync with the ones used
+      # by our editors (and does not duplicate downloads).
+      - id: pixi-ruff-format
+        name: "Run ruff format through pixi"
+        entry: pixi run fmt-ruff
+        language: system
+        types: [python]
+      - id: pixi-taplo-format
+        name: "Run taplo format through pixi"
+        entry: pixi run fmt-taplo""
+        language: system
+        types: [toml]
+      - id: pixi-ruff
+        name: Run ruff check through pixi
+        entry: pixi run check-ruff --fix
+        language: system
+        types: [python]
+      - id: pixi-mypy
+        name: "Run mypy through pixi"
+        entry: pixi run check-mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true

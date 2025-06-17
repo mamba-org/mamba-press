@@ -79,3 +79,7 @@ python-lsp-server-base = ">=1.11.0,<1.12"
 python-lsp-ruff = ">=2.2.1,<2.3"
 pylsp-mypy = ">=0.6.8"
 typos-lsp = "*"
+pre-commit = "*"
+
+[tool.pixi.feature.dev.tasks]
+pre-commit = "pre-commit"
