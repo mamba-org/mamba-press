@@ -1,5 +1,5 @@
 """Press Conda packages into wheels."""
 
-from . import config, pruning
+from . import config, platform, pruning
 
-__all__ = ["pruning", "config"]
+__all__ = ["pruning", "config", "platform"]
