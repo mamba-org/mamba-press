@@ -33,20 +33,27 @@ class ChannelParams:
     ] = dataclasses.field(default_factory=lambda: mamba.specs.CondaURL.parse("https://conda.anaconda.org"))
 
 
-def make_channels(params: ChannelParams) -> list[mamba.specs.Channel]:
-    """Create the channel object from the parameters."""
-    resolve_params = mamba.specs.ChannelResolveParams(
+def make_channel_resolve_params(params: ChannelParams) -> mamba.specs.ChannelResolveParams:
+    """Convert channel parameters to libmambapy parameters."""
+    return mamba.specs.ChannelResolveParams(
         platforms={params.platform, NOARCH_PLATFORM_STR},
         channel_alias=params.channel_alias,
         home_dir=os.path.expanduser("~"),
         current_working_dir=os.getcwd(),
     )
+
+
+def make_channels(
+    channels: Iterable[mamba.specs.UnresolvedChannel],
+    channel_resolve_params: mamba.specs.ChannelResolveParams,
+) -> list[mamba.specs.Channel]:
+    """Create the channel object from the parameters."""
     return [
         channel
-        for unresolved_channel in params.channels
+        for unresolved_channel in channels
         for channel in mamba.specs.Channel.resolve(
             unresolved_channel,
-            params=resolve_params,
+            params=channel_resolve_params,
         )
     ]
 
@@ -65,7 +72,7 @@ class CacheParams:
     ] = dataclasses.field(default_factory=lambda: [pathlib.Path("~/.cache/mamba/")])
 
 
-def make_package_cache(params: CacheParams) -> mamba.MultiPackageCache:
+def make_package_cache(cache_params: CacheParams) -> mamba.MultiPackageCache:
     """Create the cache object from the parameters."""
     validation_params = mamba.Context.ValidationParams(
         safety_checks=mamba.VerificationLevel.Enabled,
@@ -74,7 +81,7 @@ def make_package_cache(params: CacheParams) -> mamba.MultiPackageCache:
 
     return mamba.MultiPackageCache(
         validation_params=validation_params,
-        pkgs_dirs=cast(list, params.package_dirs),
+        pkgs_dirs=cast(list, cache_params.package_dirs),
     )
 
 
@@ -95,7 +102,7 @@ def make_subdir_index_loaders(
     ]
 
 
-def download_required_subdir_indices(subdir_indices: list[mamba.SubdirIndexLoader]):
+def download_required_subdir_indices(subdir_indices: list[mamba.SubdirIndexLoader]) -> None:
     """Download the channel subidrectory indices as needed."""
     subdir_download_params = mamba.SubdirDownloadParams()
     auth_info = mamba.specs.AuthenticationDataBase()
@@ -119,3 +126,43 @@ def download_required_subdir_indices(subdir_indices: list[mamba.SubdirIndexLoade
         download_options=download_options,
         remote_fetch_params=remote_fetch_params,
     )
+
+
+def load_subdirs_in_database(
+    database: mamba.solver.libsolv.Database,
+    installed_packages: list[mamba.specs.PackageInfo],
+    subdir_indices: list[mamba.SubdirIndexLoader],
+) -> None:
+    """Add packages to the database from subdir indexes and available packages."""
+    repo = database.add_repo_from_packages(
+        packages=installed_packages,
+        name="installed",
+        add_pip_as_python_dependency=mamba.solver.libsolv.PipAsPythonDependency.No,
+    )
+    database.set_installed_repo(repo)
+
+    for index in subdir_indices:
+        database.add_repo_from_repodata_json(
+            path=index.valid_json_cache_path(),
+            url=index.channel().platform_url(index.platform()).str(),
+            channel_id=index.channel_id(),
+            add_pip_as_python_dependency=mamba.solver.libsolv.PipAsPythonDependency.No,
+        )
+
+
+def solve_for_packages(
+    needed: Iterable[mamba.specs.MatchSpec], database: mamba.solver.libsolv.Database
+) -> mamba.solver.Solution:
+    """Solve the required packages into a list of packages to install."""
+    solver = mamba.solver.libsolv.Solver()
+    request = mamba.solver.Request(jobs=[mamba.solver.Request.Install(s) for s in needed])
+    outcome = solver.solve(request=request, database=database)
+
+    if isinstance(outcome, mamba.solver.libsolv.UnSolvable):
+        message = outcome.explain_problems(
+            database=database,
+            format=mamba.solver.ProblemsMessageFormat(),
+        )
+        raise ValueError("Cannot solve for packages:\n" + message)
+
+    return outcome
