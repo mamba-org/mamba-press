@@ -17,6 +17,11 @@ PLATFORM_WHEEL_TO_CONDA: Final = {
 }
 
 
+def platform_conda_string(platform: mamba.specs.KnownPlatform) -> str:
+    """Return the string representation of a Conda platform."""
+    return platform.name.replace("_", "-")
+
+
 def platform_wheel_to_conda(os: str, arch: str) -> mamba.specs.KnownPlatform | None:
     """Convert a wheel platform tag to a Conda platform."""
     os = os.strip().lower()
@@ -138,3 +143,12 @@ def manylinux_aarch64_virtual_packages(glibc_version: str) -> list[mamba.specs.P
             build_string="aarch64",
         ),
     ]
+
+
+def site_package_dir(python: mamba.specs.PackageInfo) -> str:
+    """Get the site-package relative directory."""
+    if python.platform.startswith("win"):
+        return "Lib/site-packages"
+    major, minor, *_ = python.version.split(".", maxsplit=2)
+    tag = "t" if python.build_string.endswith("t") else ""
+    return f"lib/python{major}.{minor}{tag}/site-packages"

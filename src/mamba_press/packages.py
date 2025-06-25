@@ -5,6 +5,7 @@ from typing import Annotated, Final, Iterable, cast
 
 import libmambapy as mamba
 
+import mamba_press
 from mamba_press.config import Configurable
 
 NOARCH_PLATFORM_STR: Final = "noarch"
@@ -15,8 +16,11 @@ class ChannelParams:
     """Parameters controlling the packages source."""
 
     platform: Annotated[
-        str,
-        Configurable(description="The Conda platform to fetch packages from"),
+        mamba.specs.KnownPlatform,
+        Configurable(
+            description="The Conda platform to fetch packages from",
+            convert=lambda p: mamba.specs.KnownPlatform.parse,
+        ),
     ]
 
     channels: Annotated[
@@ -36,7 +40,7 @@ class ChannelParams:
 def make_channel_resolve_params(params: ChannelParams) -> mamba.specs.ChannelResolveParams:
     """Convert channel parameters to libmambapy parameters."""
     return mamba.specs.ChannelResolveParams(
-        platforms={params.platform, NOARCH_PLATFORM_STR},
+        platforms={mamba_press.platform.platform_conda_string(params.platform), NOARCH_PLATFORM_STR},
         channel_alias=params.channel_alias,
         home_dir=os.path.expanduser("~"),
         current_working_dir=os.getcwd(),
@@ -222,3 +226,13 @@ def create_wheel_environment(
         channel_context,
         prefix,
     )
+
+
+def find_package_in_solution_installs(
+    solution: mamba.solver.Solution, ms: mamba.specs.MatchSpec
+) -> mamba.specs.PackageInfo | None:
+    """Find a package to install from a MatchSpec."""
+    for p in solution.to_install():
+        if ms.contains_except_channel(p):
+            return p
+    return None
