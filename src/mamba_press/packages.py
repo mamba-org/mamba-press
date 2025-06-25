@@ -150,12 +150,16 @@ def load_subdirs_in_database(
         )
 
 
+def make_request(needed: Iterable[mamba.specs.MatchSpec]) -> mamba.solver.Request:
+    """Make a solver request to install all the needed packages."""
+    return mamba.solver.Request([mamba.solver.Request.Install(s) for s in needed])
+
+
 def solve_for_packages(
-    needed: Iterable[mamba.specs.MatchSpec], database: mamba.solver.libsolv.Database
+    request: mamba.solver.Request, database: mamba.solver.libsolv.Database
 ) -> mamba.solver.Solution:
     """Solve the required packages into a list of packages to install."""
     solver = mamba.solver.libsolv.Solver()
-    request = mamba.solver.Request(jobs=[mamba.solver.Request.Install(s) for s in needed])
     outcome = solver.solve(request=request, database=database)
 
     if isinstance(outcome, mamba.solver.libsolv.UnSolvable):
@@ -166,3 +170,55 @@ def solve_for_packages(
         raise ValueError("Cannot solve for packages:\n" + message)
 
     return outcome
+
+
+def __make_context_getter():
+    ctx = mamba.Context(mamba.ContextOptions(enable_logging=False))
+
+    def get_context():
+        nonlocal ctx
+        return ctx
+
+    return get_context
+
+
+# Must be earerly created to avoid issues in libmamba
+__get_context = __make_context_getter()
+
+
+def create_wheel_environment(
+    database: mamba.solver.libsolv.Database,
+    request: mamba.solver.Request,
+    solution: mamba.solver.Solution,
+    caches: mamba.MultiPackageCache,
+    target_prefix: pathlib.Path,
+    channel_resolve_params: mamba.specs.ChannelResolveParams,
+) -> None:
+    """Create the environment that will be the basis for the wheel data."""
+    channel_context = mamba.ChannelContext(channel_resolve_params, has_zst=[])
+    prefix = mamba.PrefixData(
+        target_prefix,
+        channel_context=channel_context,
+    )
+
+    # TODO: Refactor transaction to remove Context
+    ctx = __get_context()
+    ctx.prefix_params.target_prefix = target_prefix
+    #  ctx.link_params.allow_softlinks = False
+    #  ctx.link_params.compile_pyc = False
+
+    request = mamba.solver.Request([])
+
+    transaction = mamba.Transaction(
+        ctx,
+        database,
+        request,
+        solution,
+        caches,
+    )
+
+    transaction.execute(
+        ctx,
+        channel_context,
+        prefix,
+    )
