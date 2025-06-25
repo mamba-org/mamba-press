@@ -43,6 +43,7 @@ mamba_press = { path = ".", editable = true }
 [tool.pixi.dependencies]
 python = ">=3.12.3"
 libmambapy = ">=2.3.0"
+py-lief = "*"
 
 [tool.pixi.feature.test.dependencies]
 ruff = ">=0.4.7"

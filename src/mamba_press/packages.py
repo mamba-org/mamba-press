@@ -173,7 +173,7 @@ def solve_for_packages(
 
 
 def __make_context_getter():
-    ctx = mamba.Context(mamba.ContextOptions(enable_logging=False))
+    ctx = mamba.Context()
 
     def get_context():
         nonlocal ctx
