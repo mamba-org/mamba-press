@@ -1,4 +1,4 @@
-import libmambapy
+import libmambapy as mamba
 
 import mamba_press
 
@@ -6,17 +6,19 @@ import mamba_press
 def test_prune_packages_from_solution_pyarrow():
     """Test that packages and orphans are pruned correctly on a pyarrow case."""
     to_prune = [
-        libmambapy.specs.MatchSpec.parse("python"),
-        libmambapy.specs.MatchSpec.parse("libcxx"),
-        libmambapy.specs.MatchSpec.parse("bzip2"),
+        mamba.specs.MatchSpec.parse("python"),
+        mamba.specs.MatchSpec.parse("libcxx"),
+        mamba.specs.MatchSpec.parse("bzip2"),
     ]
-    python_only_deps = [libmambapy.specs.MatchSpec.parse("libffi")]
-    common_deps = [libmambapy.specs.MatchSpec.parse("libzlib")]
-
     solution = make_pyarrow_solution()
-    pruned = mamba_press.pruning.prune_packages_from_solution_installs(solution, to_prune)
+
+    filter = mamba_press.filter.PackagesFilter(to_prune)
+    pruned = filter.filter_solution(solution)
 
     assert len(pruned.to_install()) < len(solution.to_install())
+
+    python_only_deps = [mamba.specs.MatchSpec.parse("libffi")]
+    common_deps = [mamba.specs.MatchSpec.parse("libzlib")]
 
     # Python-only dependencies
     for ms in to_prune + python_only_deps:
@@ -27,12 +29,12 @@ def test_prune_packages_from_solution_pyarrow():
         assert any(ms.contains_except_channel(p) for p in pruned.to_install())
 
 
-def make_pyarrow_solution() -> libmambapy.solver.Solution:
+def make_pyarrow_solution() -> mamba.solver.Solution:
     """Return a Solution to create an osx-arm64 pyarrow 20.0.0 environment."""
-    PackageInfo = libmambapy.specs.PackageInfo
-    Install = libmambapy.solver.Solution.Install
+    PackageInfo = mamba.specs.PackageInfo
+    Install = mamba.solver.Solution.Install
 
-    return libmambapy.solver.Solution(
+    return mamba.solver.Solution(
         [
             Install(PackageInfo(name="python_abi", version="3.13", build_string="7_cp313", depends=[])),
             Install(

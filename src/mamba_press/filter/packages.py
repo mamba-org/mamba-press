@@ -1,6 +1,7 @@
+import dataclasses
 from typing import Iterable, Sequence
 
-import libmambapy
+import libmambapy as mamba
 
 PackageIndex = int
 FulfillmentIndexGraph = dict[PackageIndex, set[PackageIndex] | None]
@@ -79,11 +80,11 @@ class FulfillmentGraph:
         return removed
 
 
-def make_packages_fulfillemnt_graph(packages: list[libmambapy.specs.PackageInfo]) -> FulfillmentGraph:
+def make_packages_fulfillemnt_graph(packages: list[mamba.specs.PackageInfo]) -> FulfillmentGraph:
     """Create a :class:`FulfillementGraph` from a list of :class:`libmambapy.specs.PackageInfo`."""
     fulfills: FulfillmentIndexGraph = {pkg_id: set() for pkg_id in range(len(packages))}
     for idx, pkg in enumerate(packages):
-        dependencies = [libmambapy.specs.MatchSpec.parse(dep) for dep in pkg.dependencies]
+        dependencies = [mamba.specs.MatchSpec.parse(dep) for dep in pkg.dependencies]
         for candidate_pkg_id, candidate_pkg in enumerate(packages):
             candidate_is_dependency = any(dep.contains_except_channel(candidate_pkg) for dep in dependencies)
             if candidate_is_dependency:
@@ -95,9 +96,10 @@ def make_packages_fulfillemnt_graph(packages: list[libmambapy.specs.PackageInfo]
 
 
 def prune_packages_from_solution_installs(
-    solution: libmambapy.solver.Solution,
-    to_prune: Iterable[libmambapy.specs.MatchSpec],
-) -> libmambapy.solver.Solution:
+    solution: mamba.solver.Solution,
+    to_prune: Iterable[mamba.specs.MatchSpec],
+    recursive: bool = True,
+) -> mamba.solver.Solution:
     """Prune the given packages from a :class:`libmambapy.solver.Solution`.
 
     Return a new  :class:`libmambapy.solver.Solution` from the installs of the input.
@@ -111,12 +113,29 @@ def prune_packages_from_solution_installs(
     for idx, pkg in enumerate(packages):
         if any(dep.contains_except_channel(pkg) for dep in to_prune):
             graph.remove_package(idx)
-    graph.prune_orphans()
+    if recursive:
+        graph.prune_orphans()
 
-    return libmambapy.solver.Solution(
-        [
-            libmambapy.solver.Solution.Install(pkg)
-            for idx, pkg in enumerate(packages)
-            if graph.has_package(idx)
-        ]
+    return mamba.solver.Solution(
+        [mamba.solver.Solution.Install(pkg) for idx, pkg in enumerate(packages) if graph.has_package(idx)]
     )
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class PackagesFilter:
+    """Remove packages from the the final wheel.
+
+    This is used for removing dependencies of a package that we know should not be part of the
+    final wheel, such as Python itself, other Python runtime dependencies such as NumPy, or
+    system dependencies not assumed by conda-forge, such as a C++ standard library.
+
+    If ``recursive`` is True, the given packages dependencies that do not fulfill any other
+    dependency in the remaining packages are recursively removed.
+    """
+
+    packages: list[mamba.specs.MatchSpec]
+    recursive: bool = True
+
+    def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
+        """Filter packages from solution packages to install."""
+        return prune_packages_from_solution_installs(solution, self.packages)

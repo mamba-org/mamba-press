@@ -73,15 +73,16 @@ def main(
     if python_package is None:
         raise RuntimeError("Could not detect python package")
 
-    solution = mamba_press.pruning.prune_packages_from_solution_installs(
-        solution,
+    packages_filter = mamba_press.filter.PackagesFilter(
         # TODO: place in default package pruning
         [
             mamba.specs.MatchSpec.parse("python"),
             mamba.specs.MatchSpec.parse("python_abi"),
             mamba.specs.MatchSpec.parse("numpy"),
-        ],
+        ]
     )
+
+    solution = packages_filter.filter_solution(solution)
 
     if execution_params.working_dir is None:
         tmp = tempfile.TemporaryDirectory(prefix="mamba-press")
