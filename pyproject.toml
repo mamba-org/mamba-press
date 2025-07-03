@@ -45,6 +45,9 @@ python = ">=3.12.3"
 libmambapy = ">=2.3.0"
 py-lief = "*"
 
+[tool.pixi.tasks]
+mamba-press = "python -m mamba_press"
+
 [tool.pixi.feature.test.dependencies]
 ruff = ">=0.4.7"
 pytest = ">=8.3.0"
@@ -62,7 +65,7 @@ fmt = [{ task = "fmt-ruff" }, { task = "fmt-taplo" }]
 # Checkers
 check-ruff-format = "ruff format --check"
 check-ruff = "ruff check"
-check-mypy = "python -m mypy ."
+check-mypy = "python -m mypy src/ test/"
 check-typos = "typos --write-changes"
 check = [
   { task = "check-ruff-format" },

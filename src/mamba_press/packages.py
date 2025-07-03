@@ -15,14 +15,6 @@ NOARCH_PLATFORM_STR: Final = "noarch"
 class ChannelParams:
     """Parameters controlling the packages source."""
 
-    platform: Annotated[
-        mamba.specs.KnownPlatform,
-        Configurable(
-            description="The Conda platform to fetch packages from",
-            convert=lambda p: mamba.specs.KnownPlatform.parse,
-        ),
-    ]
-
     channels: Annotated[
         list[mamba.specs.UnresolvedChannel],
         Configurable(
@@ -37,10 +29,12 @@ class ChannelParams:
     ] = dataclasses.field(default_factory=lambda: mamba.specs.CondaURL.parse("https://conda.anaconda.org"))
 
 
-def make_channel_resolve_params(params: ChannelParams) -> mamba.specs.ChannelResolveParams:
+def make_channel_resolve_params(
+    params: ChannelParams, platform: mamba.specs.KnownPlatform
+) -> mamba.specs.ChannelResolveParams:
     """Convert channel parameters to libmambapy parameters."""
     return mamba.specs.ChannelResolveParams(
-        platforms={mamba_press.platform.platform_conda_string(params.platform), NOARCH_PLATFORM_STR},
+        platforms={mamba_press.platform.platform_conda_string(platform), NOARCH_PLATFORM_STR},
         channel_alias=params.channel_alias,
         home_dir=os.path.expanduser("~"),
         current_working_dir=os.getcwd(),

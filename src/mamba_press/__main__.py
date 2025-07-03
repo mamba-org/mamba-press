@@ -1,22 +1,46 @@
+import argparse
+import dataclasses
+import os
 import pathlib
+import tempfile
+import typing
+from collections.abc import Mapping
+from typing import Annotated
 
 import libmambapy as mamba
 
 import mamba_press
+from mamba_press.config import Configurable
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ExecutionParams:
+    """Parameters controlling the execution of the program."""
+
+    platform: Annotated[str, Configurable(description="The wheel platform tag to build")]
+
+    packages: Annotated[
+        list[mamba.specs.MatchSpec],
+        Configurable(
+            description="The Conda packages used to build the wheel",
+            convert=lambda c: [mamba.specs.MatchSpec.parse(c)],
+        ),
+    ]
+
+    working_dir: Annotated[
+        pathlib.Path | None, Configurable(description="Where working environment is created")
+    ] = None
 
 
 def main(
-    tag: str,
-    packages: list[mamba.specs.MatchSpec],
-    wheel_env_dir: pathlib.Path,
+    execution_params: ExecutionParams,
+    channel_params: mamba_press.packages.ChannelParams,
+    cache_params: mamba_press.packages.CacheParams,
 ) -> None:
     """Press Conda packages into wheels."""
-    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(tag)
+    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(execution_params.platform)
 
-    channel_params = mamba_press.packages.ChannelParams(platform=platform)
-    cache_params = mamba_press.packages.CacheParams()
-
-    channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params)
+    channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params, platform)
     channels = mamba_press.packages.make_channels(
         channels=channel_params.channels,
         channel_resolve_params=channel_resolve_params,
@@ -37,7 +61,7 @@ def main(
     )
 
     print("Solving package requirements")
-    request = mamba_press.packages.make_request(packages)
+    request = mamba_press.packages.make_request(execution_params.packages)
     solution = mamba_press.packages.solve_for_packages(
         request=request,
         database=database,
@@ -59,13 +83,19 @@ def main(
         ],
     )
 
+    if execution_params.working_dir is None:
+        tmp = tempfile.TemporaryDirectory(prefix="mamba-press")
+        target_prefix = pathlib.Path(tmp.name)
+    else:
+        target_prefix = execution_params.working_dir
+
     print("Creating wheel environment")
     mamba_press.packages.create_wheel_environment(
         database=database,
         request=request,
         solution=solution,
         caches=caches,
-        target_prefix=wheel_env_dir,
+        target_prefix=target_prefix,
         channel_resolve_params=channel_resolve_params,
     )
 
@@ -73,9 +103,75 @@ def main(
     print("Site package is ", site_package_dir)
 
 
-if __name__ == "__main__":
-    import sys
-    import tempfile
+def add_configurable_to_parser[T](
+    parser: argparse.ArgumentParser, configurable: mamba_press.config.ExplicitConfigurable[T]
+) -> None:
+    """Add a single configurable to the argument parser."""
+    if configurable.cli is None:
+        raise ValueError("Cli argument name cannot be None")
 
-    wheel_env_dir = tempfile.TemporaryDirectory(prefix="mamba-press")
-    main(sys.argv[1], [mamba.specs.MatchSpec.parse(sys.argv[2])], pathlib.Path(wheel_env_dir.name))
+    name = configurable.cli
+    args: dict[str, object] = {}
+    if configurable.default_factory is None and configurable.env is None:
+        args["required"] = True
+
+    if configurable.convert is not None:
+        # TODO better handling as a ConfigurableSequence type
+        if typing.get_origin(configurable.type_) is list:
+            args["type"] = lambda s: configurable.convert(s)[0]  # type: ignore
+        else:
+            args["type"] = configurable.convert
+
+    if typing.get_origin(configurable.type_) is list:
+        args["action"] = "append"
+
+    parser.add_argument(
+        name,
+        help=configurable.description,
+        dest=configurable.name,
+        **args,  # type: ignore
+    )
+
+
+def add_params_to_parser(parser: argparse.ArgumentParser, klass) -> None:
+    """Add a parameter dataclass as an argument group to the argument parser."""
+    group = parser.add_argument_group(klass.__name__.replace("Params", " Options"), klass.__doc__)
+    for field in dataclasses.fields(klass):
+        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)  # type: ignore
+        if configurable.cli is not None:
+            add_configurable_to_parser(group, configurable)  # type: ignore
+
+
+def load_params[T](cli: Mapping[str, object], env: Mapping[str, str], klass: type[T]) -> T:
+    """Load a parameters dataclass from inputs."""
+    values = {}
+    for field in dataclasses.fields(klass):  # type: ignore
+        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)  # type: ignore
+        values[configurable.name] = configurable.load(cli, env)
+
+    return klass(**values)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="python -m mamba_press",
+        description="Press Conda packages into wheels",
+        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=40),
+    )
+
+    add_params_to_parser(parser, ExecutionParams)
+    add_params_to_parser(parser, mamba_press.packages.ChannelParams)
+    add_params_to_parser(parser, mamba_press.packages.CacheParams)
+
+    cli = vars(parser.parse_args())
+    env = os.environ
+
+    execution_params = load_params(cli=cli, env=env, klass=ExecutionParams)
+    channel_params = load_params(cli=cli, env=env, klass=mamba_press.packages.ChannelParams)
+    cache_params = load_params(cli=cli, env=env, klass=mamba_press.packages.CacheParams)
+
+    main(
+        execution_params=execution_params,
+        channel_params=channel_params,
+        cache_params=cache_params,
+    )

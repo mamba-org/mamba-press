@@ -71,3 +71,27 @@ def test_explicit_configurable_default_env() -> None:
     explicit: ExplicitConfigurable[int] = ExplicitConfigurable.resolve(dataclasses.fields(S)[0])
 
     assert explicit.env == "MAMBA_PRESS_TTL"
+
+
+def test_explicit_configurable_optional_convert() -> None:
+    """Default convert with optional type created a value."""
+
+    @dataclasses.dataclass
+    class S:
+        ttl: Annotated[int | None, Configurable(description="description")]
+
+    explicit: ExplicitConfigurable[int | None] = ExplicitConfigurable.resolve(dataclasses.fields(S)[0])
+
+    assert explicit.convert("33") == 33
+
+
+def test_explicit_configurable_list() -> None:
+    """Default convert with optional type created a value."""
+
+    @dataclasses.dataclass
+    class S:
+        foos: Annotated[list[int], Configurable(description="description")]
+
+    explicit: ExplicitConfigurable[int | None] = ExplicitConfigurable.resolve(dataclasses.fields(S)[0])
+
+    assert explicit.cli == "--foo"

@@ -1,5 +1,8 @@
 import dataclasses
 import enum
+import types
+import typing
+from collections.abc import Mapping
 from typing import Callable, Literal
 
 
@@ -34,15 +37,30 @@ class ExplicitConfigurable[T]:
     cli: str | None
     env: str | None
     default_factory: Callable[[], T] | None
+    type_: type[T]
+
+    @staticmethod
+    def __make_convert[U](configurable: Configurable[U], type_) -> Callable[[str], U]:
+        type_origin = typing.get_origin(type_)
+
+        if configurable.convert == Default:
+            if type_origin is types.UnionType or type_origin is typing.Union:
+                args = [t for t in typing.get_args(type_) if t is not type(None)]
+                if len(args) == 1:
+                    return lambda s: args[0](s)
+                raise ValueError(f'Cannot create conversion for "{configurable.name}"')
+            return lambda s: type_(s)
+        return configurable.convert
 
     @staticmethod
     def resolve[U](field: dataclasses.Field) -> "ExplicitConfigurable[U]":
         """Resolve defaults from data class field annotated with a :class:`Configurable`."""
-        if isinstance((type_ := field.type), str):
+        if isinstance((annotated_type := field.type), str):
             raise ValueError("Type must be Python type")
 
-        if hasattr(type_, "__metadata__"):
-            metadata = type_.__metadata__
+        if hasattr(annotated_type, "__metadata__"):
+            metadata = annotated_type.__metadata__
+            type_ = annotated_type.__origin__
         else:
             raise ValueError("Type must use `typing.Annotated`")
 
@@ -50,15 +68,12 @@ class ExplicitConfigurable[T]:
 
         name: str = field.name if configurable.name == Default else configurable.name
 
-        convert: Callable[[str], U]
-        if configurable.convert == Default:
-            convert = lambda s: type_(s)  # noqa: E731
-        else:
-            convert = configurable.convert
-
         cli: str | None
         if configurable.cli == Default:
-            cli = f"--{name.lower().replace('_', '-')}"
+            cli_name = name.lower().replace("_", "-")
+            if typing.get_origin(type_) is list:
+                cli_name = cli_name.removesuffix("s")  # Poor man's singular
+            cli = f"--{cli_name}"
         else:
             cli = configurable.cli
 
@@ -78,8 +93,20 @@ class ExplicitConfigurable[T]:
         return ExplicitConfigurable(
             name=name,
             description=configurable.description,
-            convert=convert,
+            convert=ExplicitConfigurable.__make_convert(configurable, type_),
             cli=cli,
             env=env,
             default_factory=default_factory,
+            type_=type_,
         )
+
+    def load(self, cli: Mapping[str, object], env: Mapping[str, str]) -> T:
+        """Load the configured value from all the given inputs."""
+        if value := cli.get(self.name):
+            return value  # type: ignore
+        if value := env.get(self.name):
+            return self.convert(value)
+        if (factory := self.default_factory) is not None:
+            return factory()
+
+        raise RuntimeError(f"""Configuration entry "{self.name}" is not provided""")

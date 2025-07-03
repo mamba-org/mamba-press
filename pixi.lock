@@ -3252,7 +3252,7 @@ packages:
 - pypi: ./
   name: mamba-press
   version: 0.0.1
-  sha256: 4b2bd23d7e8bccf7747a7304d1f92a1fdf0737a2298bc15e7d88bca9a94ea35b
+  sha256: c3f6c033ddbb4427b66574a215856f743e8895bcec4dd0b3c5d8e872b6cc25e0
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/markupsafe-3.0.2-py313h8060acc_1.conda
   sha256: d812caf52efcea7c9fd0eafb21d45dadfd0516812f667b928bee50e87634fae5
