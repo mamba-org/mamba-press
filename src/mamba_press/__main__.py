@@ -2,15 +2,61 @@ import argparse
 import dataclasses
 import os
 import pathlib
+import re
 import tempfile
 import typing
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Annotated
 
 import libmambapy as mamba
 
 import mamba_press
 from mamba_press.config import Configurable
+from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+
+INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
+
+
+def interpolate(template: str, context: Mapping[str, object]):
+    """Replace variables with a simple JinJa-like syntax."""
+    return INTERPOLATE_VAR_PATTERN.sub(lambda m: str(context.get(m.group(1), "")), template)
+
+
+def make_solution_filters() -> list[SolutionFilter]:
+    """Return default filters on solution."""
+    return [
+        mamba_press.filter.PackagesFilter(
+            [
+                mamba.specs.MatchSpec.parse("python"),
+                mamba.specs.MatchSpec.parse("python_abi"),
+            ]
+        )
+    ]
+
+
+def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
+    """Return default filters on files."""
+    return [
+        mamba_press.filter.UnixFilesFilter(
+            [
+                "conda-meta/*",
+                "etc/conda/*",
+                "man/*",
+                "share/man/*",
+                "bin/*",
+                "sbin/*",
+                "include/*",
+                "lib/pkgconfig/*",
+                "lib/cmake/*",
+                "*.a",
+                interpolate("${{ site_package }}/*.dist-info", context),
+                interpolate("${{ site_package }}/*.egg-info", context),
+                "*.pyc",
+                "*/__pycache__/",
+            ],
+            exclude=True,
+        ),
+    ]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -30,6 +76,13 @@ class ExecutionParams:
     working_dir: Annotated[
         pathlib.Path | None, Configurable(description="Where working environment is created")
     ] = None
+
+
+def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
+    """Read all the files in the environment."""
+    for p in path.glob("**/*"):
+        if p.is_file():
+            yield p.relative_to(path)
 
 
 def main(
@@ -73,16 +126,9 @@ def main(
     if python_package is None:
         raise RuntimeError("Could not detect python package")
 
-    packages_filter = mamba_press.filter.PackagesFilter(
-        # TODO: place in default package pruning
-        [
-            mamba.specs.MatchSpec.parse("python"),
-            mamba.specs.MatchSpec.parse("python_abi"),
-            mamba.specs.MatchSpec.parse("numpy"),
-        ]
-    )
-
-    solution = packages_filter.filter_solution(solution)
+    solution_filters = make_solution_filters()
+    for sfilter in solution_filters:
+        solution = sfilter.filter_solution(solution)
 
     if execution_params.working_dir is None:
         tmp = tempfile.TemporaryDirectory(prefix="mamba-press")
@@ -100,8 +146,14 @@ def main(
         channel_resolve_params=channel_resolve_params,
     )
 
-    site_package_dir = mamba_press.platform.site_package_dir(python_package)
-    print("Site package is ", site_package_dir)
+    context = {
+        "site_package": mamba_press.platform.site_package_dir(python_package),
+    }
+    files_filters = make_files_filters(context)
+
+    files = [str(f) for f in read_env_files(target_prefix)]
+    for ffilter in files_filters:
+        files = list(ffilter.filter_files(files))
 
 
 def add_configurable_to_parser[T](
