@@ -67,7 +67,7 @@ class CacheParams:
             env="CONDA_PKGS_DIRS",
             convert=lambda p: [pathlib.Path(p)],
         ),
-    ] = dataclasses.field(default_factory=lambda: [pathlib.Path("~/.cache/mamba/")])
+    ] = dataclasses.field(default_factory=lambda: [pathlib.Path("~/.cache/mamba/").expanduser()])
 
 
 def make_package_cache(cache_params: CacheParams) -> mamba.MultiPackageCache:
