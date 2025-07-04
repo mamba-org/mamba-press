@@ -34,6 +34,10 @@ repos:
         entry: pixi run check-ruff --fix
         language: system
         types: [python]
+      - id: pixi-typos
+        name: "Run typos through pixi"
+        entry: pixi run check-typos
+        language: system
       - id: pixi-mypy
         name: "Run mypy through pixi"
         entry: pixi run check-mypy
