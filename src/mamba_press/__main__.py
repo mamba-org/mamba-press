@@ -3,15 +3,12 @@ import dataclasses
 import os
 import pathlib
 import re
-import tempfile
 import typing
 from collections.abc import Iterable, Mapping
-from typing import Annotated
 
 import libmambapy as mamba
 
 import mamba_press
-from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 
 INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
@@ -59,25 +56,6 @@ def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
     ]
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class ExecutionParams:
-    """Parameters controlling the execution of the program."""
-
-    platform: Annotated[str, Configurable(description="The wheel platform tag to build")]
-
-    packages: Annotated[
-        list[mamba.specs.MatchSpec],
-        Configurable(
-            description="The Conda packages used to build the wheel",
-            convert=lambda c: [mamba.specs.MatchSpec.parse(c)],
-        ),
-    ]
-
-    working_dir: Annotated[
-        pathlib.Path | None, Configurable(description="Where working environment is created")
-    ] = None
-
-
 def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
     """Read all the files in the environment."""
     for p in path.glob("**/*"):
@@ -86,72 +64,26 @@ def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
 
 
 def main(
-    execution_params: ExecutionParams,
+    execution_params: mamba_press.execution.ExecutionParams,
     channel_params: mamba_press.packages.ChannelParams,
     cache_params: mamba_press.packages.CacheParams,
 ) -> None:
     """Press Conda packages into wheels."""
-    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(execution_params.platform)
-
-    channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params, platform)
-    channels = mamba_press.packages.make_channels(
-        channels=channel_params.channels,
-        channel_resolve_params=channel_resolve_params,
-    )
-    caches = mamba_press.packages.make_package_cache(cache_params=cache_params)
-    subdir_indices = mamba_press.packages.make_subdir_index_loaders(
-        [(c, mamba_press.platform.platform_conda_string(platform)) for c in channels],
-        caches=caches,
-    )
-
-    print("Loading channel subdirectory indices")
-    mamba_press.packages.download_required_subdir_indices(subdir_indices)
-    database = mamba.solver.libsolv.Database(channel_resolve_params)
-    mamba_press.packages.load_subdirs_in_database(
-        database=database,
-        installed_packages=virtual_packages,
-        subdir_indices=subdir_indices,
-    )
-
-    print("Solving package requirements")
-    request = mamba_press.packages.make_request(execution_params.packages)
-    solution = mamba_press.packages.solve_for_packages(
-        request=request,
-        database=database,
-    )
-
-    python_package = mamba_press.packages.find_package_in_solution_installs(
-        solution, mamba.specs.MatchSpec.parse("python")
-    )
-    if python_package is None:
-        raise RuntimeError("Could not detect python package")
-
     solution_filters = make_solution_filters()
-    for sfilter in solution_filters:
-        solution = sfilter.filter_solution(solution)
 
-    if execution_params.working_dir is None:
-        tmp = tempfile.TemporaryDirectory(prefix="mamba-press")
-        target_prefix = pathlib.Path(tmp.name)
-    else:
-        target_prefix = execution_params.working_dir
-
-    print("Creating wheel environment")
-    mamba_press.packages.create_wheel_environment(
-        database=database,
-        request=request,
-        solution=solution,
-        caches=caches,
-        target_prefix=target_prefix,
-        channel_resolve_params=channel_resolve_params,
+    working_artifacts = mamba_press.execution.create_working_env(
+        execution_params=execution_params,
+        channel_params=channel_params,
+        cache_params=cache_params,
+        solution_filters=solution_filters,
     )
 
     context = {
-        "site_package": mamba_press.platform.site_package_dir(python_package),
+        "site_package": mamba_press.platform.site_package_dir(working_artifacts.python_package),
     }
     files_filters = make_files_filters(context)
 
-    files = [str(f) for f in read_env_files(target_prefix)]
+    files = [str(f) for f in read_env_files(working_artifacts.working_env_path)]
     for ffilter in files_filters:
         files = list(ffilter.filter_files(files))
 
@@ -212,14 +144,14 @@ if __name__ == "__main__":
         formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=40),
     )
 
-    add_params_to_parser(parser, ExecutionParams)
+    add_params_to_parser(parser, mamba_press.execution.ExecutionParams)
     add_params_to_parser(parser, mamba_press.packages.ChannelParams)
     add_params_to_parser(parser, mamba_press.packages.CacheParams)
 
     cli = vars(parser.parse_args())
     env = os.environ
 
-    execution_params = load_params(cli=cli, env=env, klass=ExecutionParams)
+    execution_params = load_params(cli=cli, env=env, klass=mamba_press.execution.ExecutionParams)
     channel_params = load_params(cli=cli, env=env, klass=mamba_press.packages.ChannelParams)
     cache_params = load_params(cli=cli, env=env, klass=mamba_press.packages.CacheParams)
 

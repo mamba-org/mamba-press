@@ -20,5 +20,5 @@ class UnixFilesFilter:
         return any(fnmatch.fnmatch(path, pat) for pat in self.patterns) != self.exclude
 
     def filter_files(self, paths: Iterable[str]) -> Iterable[str]:
-        """Return the sequence of files not filted out."""
+        """Return the sequence of files not filtered out."""
         return (p for p in paths if self.should_keep_file(p))

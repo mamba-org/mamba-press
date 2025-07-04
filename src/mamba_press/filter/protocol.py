@@ -21,5 +21,5 @@ class FilesFilter(Protocol):
     """
 
     def filter_files(self, paths: Iterable[str]) -> Iterable[str]:
-        """Return the sequence of files not filted out."""
+        """Return the sequence of files not filtered out."""
         ...
