@@ -5,7 +5,7 @@ from typing import Annotated, Final, Iterable, cast
 
 import libmambapy as mamba
 
-import mamba_press
+import mamba_press.platform
 from mamba_press.config import Configurable
 
 NOARCH_PLATFORM_STR: Final = "noarch"
