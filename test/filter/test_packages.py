@@ -59,7 +59,7 @@ def test_python_filter_pinocchio():
 
     must_not_prune = [
         # A transitive dependency of pinocchio
-        mamba.specs.MatchSpec.parse("libcblas"),
+        mamba.specs.MatchSpec.parse("zstd"),
         # Any requested package
         *requested_packages,
     ]
