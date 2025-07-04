@@ -1,4 +1,5 @@
 import dataclasses
+import itertools
 import logging
 import pathlib
 import tempfile
@@ -73,7 +74,7 @@ def create_working_env(
     )
     caches = mamba_press.packages.make_package_cache(cache_params=cache_params)
     subdir_indices = mamba_press.packages.make_subdir_index_loaders(
-        [(c, mamba_press.platform.platform_conda_string(platform)) for c in channels],
+        itertools.product(channels, [platform, mamba_press.packages.NOARCH_PLATFORM]),
         caches=caches,
     )
 

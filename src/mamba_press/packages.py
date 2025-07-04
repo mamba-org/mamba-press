@@ -9,6 +9,7 @@ import mamba_press.platform
 from mamba_press.config import Configurable
 
 NOARCH_PLATFORM_STR: Final = "noarch"
+NOARCH_PLATFORM: Final = mamba.specs.KnownPlatform.noarch
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -84,7 +85,8 @@ def make_package_cache(cache_params: CacheParams) -> mamba.MultiPackageCache:
 
 
 def make_subdir_index_loaders(
-    locations: Iterable[tuple[mamba.specs.Channel, str]], caches: mamba.MultiPackageCache
+    locations: Iterable[tuple[mamba.specs.Channel, mamba.specs.KnownPlatform]],
+    caches: mamba.MultiPackageCache,
 ) -> list[mamba.SubdirIndexLoader]:
     """Create loader channel subdirectory index loader objects."""
     subdir_params = mamba.SubdirParams()
@@ -93,7 +95,7 @@ def make_subdir_index_loaders(
         mamba.SubdirIndexLoader.create(
             params=subdir_params,
             channel=channel,
-            platform=platform,
+            platform=mamba_press.platform.platform_conda_string(platform),
             caches=caches,
         )
         for channel, platform in locations
