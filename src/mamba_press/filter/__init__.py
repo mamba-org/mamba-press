@@ -2,11 +2,12 @@
 
 from . import files, packages
 from .files import UnixFilesFilter
-from .packages import PackagesFilter
+from .packages import PackagesFilter, PythonPackagesFilter
 
 __all__ = [
-    "UnixFilesFilter",
     "PackagesFilter",
-    "packages",
+    "PythonPackagesFilter",
+    "UnixFilesFilter",
     "files",
+    "packages",
 ]

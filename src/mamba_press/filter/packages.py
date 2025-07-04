@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 import libmambapy as mamba
 
@@ -13,7 +13,6 @@ class FulfillmentGraph:
     def __init__(self, fulfills: FulfillmentIndexGraph) -> None:
         self._fulfills = fulfills
         self._package_count = len(fulfills)
-        self.mark_orphan_packages_as_user_requested()
 
     @property
     def package_count(self) -> int:
@@ -44,10 +43,13 @@ class FulfillmentGraph:
         """Return all orphan packages in the graph."""
         return filter(lambda idx: self.has_package(idx) and self.is_orphan(idx), self.package_indices)
 
-    def mark_orphan_packages_as_user_requested(self) -> None:
-        """Mark orphans as requested by the user."""
-        for idx in self.orphans:
-            self._fulfills[idx] = None
+    def mark_package_as_user_requested(self, idx: PackageIndex) -> None:
+        """Mark a package as requested by the user."""
+        self._fulfills[idx] = None
+
+    def fulfills(self, idx: PackageIndex) -> Iterable[PackageIndex] | None:
+        """Return what packages this package fulfills."""
+        return self._fulfills[idx]
 
     def remove_package(self, idx: PackageIndex) -> bool:
         """Remove a given package from the graph altogether.
@@ -80,39 +82,71 @@ class FulfillmentGraph:
         return removed
 
 
-def make_packages_fulfillemnt_graph(packages: list[mamba.specs.PackageInfo]) -> FulfillmentGraph:
+def __packages_matcher(
+    to_match: Iterable[mamba.specs.MatchSpec] | set[mamba.specs.PackageInfo],
+) -> Callable[[mamba.specs.PackageInfo], bool]:
+    if isinstance(to_match, set):
+        return lambda pkg: pkg in to_match
+    return lambda pkg: any(dep.contains_except_channel(pkg) for dep in to_match)
+
+
+def make_packages_fulfillemnt_graph(
+    requested_packages: list[mamba.specs.MatchSpec],
+    packages: list[mamba.specs.PackageInfo],
+) -> FulfillmentGraph:
     """Create a :class:`FulfillementGraph` from a list of :class:`libmambapy.specs.PackageInfo`."""
-    fulfills: FulfillmentIndexGraph = {pkg_id: set() for pkg_id in range(len(packages))}
+    is_requested = __packages_matcher(requested_packages)
+
+    fulfills: FulfillmentIndexGraph = {
+        idx: (None if is_requested(pkg) else set()) for idx, pkg in enumerate(packages)
+    }
+
     for idx, pkg in enumerate(packages):
         dependencies = [mamba.specs.MatchSpec.parse(dep) for dep in pkg.dependencies]
+        is_in_dependencies = __packages_matcher(dependencies)
         for candidate_pkg_id, candidate_pkg in enumerate(packages):
-            candidate_is_dependency = any(dep.contains_except_channel(candidate_pkg) for dep in dependencies)
-            if candidate_is_dependency:
+            if is_in_dependencies(candidate_pkg):
                 fulfillment = fulfills[candidate_pkg_id]
-                assert fulfillment is not None
-                fulfillment.add(idx)
+                if fulfillment is not None:
+                    fulfillment.add(idx)
 
     return FulfillmentGraph(fulfills)
 
 
 def prune_packages_from_solution_installs(
     solution: mamba.solver.Solution,
-    to_prune: Iterable[mamba.specs.MatchSpec],
+    requested_packages: list[mamba.specs.MatchSpec],
+    to_prune: Iterable[mamba.specs.MatchSpec] | set[mamba.specs.PackageInfo],
+    to_prune_if_depending_on: Iterable[mamba.specs.MatchSpec] | set[mamba.specs.PackageInfo],
     recursive: bool = True,
 ) -> mamba.solver.Solution:
-    """Prune the given packages from a :class:`libmambapy.solver.Solution`.
+    """Prune the given MatchSpec from a :class:`libmambapy.solver.Solution`.
 
     Return a new  :class:`libmambapy.solver.Solution` from the installs of the input.
-    Packages matching one of the given :class:`libmambapy.specs.MatchSpec` are removed,
-    as well as their dependencies that does not serve any other package.
+    Packages matching one of the given :class:`libmambapy.specs.MatchSpec` are
+    removed, as well as their dependencies that does not serve any other package.
     """
     packages = solution.to_install()
+    is_to_prune = __packages_matcher(to_prune)
+    is_to_prune_if_depending_on = __packages_matcher(to_prune_if_depending_on)
 
-    graph = make_packages_fulfillemnt_graph(packages)
+    graph = make_packages_fulfillemnt_graph(requested_packages=requested_packages, packages=packages)
+
+    for dep_idx, dep_pkg in enumerate(packages):
+        if is_to_prune_if_depending_on(dep_pkg):
+            fulfills = graph.fulfills(dep_idx)
+            if fulfills is None:
+                raise RuntimeError(
+                    f'Package "{dep_pkg.name}" cannot be both requested and a forbidden dependency'
+                )
+            for idx in list(fulfills):
+                if not graph.is_user_requested(idx):
+                    graph.remove_package(idx)
 
     for idx, pkg in enumerate(packages):
-        if any(dep.contains_except_channel(pkg) for dep in to_prune):
+        if is_to_prune(pkg):
             graph.remove_package(idx)
+
     if recursive:
         graph.prune_orphans()
 
@@ -133,9 +167,38 @@ class PackagesFilter:
     dependency in the remaining packages are recursively removed.
     """
 
-    packages: list[mamba.specs.MatchSpec]
+    requested_packages: list[mamba.specs.MatchSpec]
+    to_prune: list[mamba.specs.MatchSpec]
     recursive: bool = True
 
     def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
         """Filter packages from solution packages to install."""
-        return prune_packages_from_solution_installs(solution, self.packages)
+        return prune_packages_from_solution_installs(
+            solution=solution,
+            to_prune=self.to_prune,
+            to_prune_if_depending_on=[],
+            requested_packages=self.requested_packages,
+        )
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class PythonPackagesFilter:
+    """Remove Python and all Python packages except the ones requested."""
+
+    requested_packages: list[mamba.specs.MatchSpec]
+    python_package: list[mamba.specs.MatchSpec] = dataclasses.field(
+        default_factory=lambda: [
+            mamba.specs.MatchSpec.parse("python"),
+            mamba.specs.MatchSpec.parse("python_abi"),
+        ]
+    )
+    recursive: bool = True
+
+    def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
+        """Filter packages from solution packages to install."""
+        return prune_packages_from_solution_installs(
+            solution=solution,
+            to_prune=self.python_package,
+            to_prune_if_depending_on=self.python_package,
+            requested_packages=self.requested_packages,
+        )

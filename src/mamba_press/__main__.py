@@ -19,14 +19,15 @@ def interpolate(template: str, context: Mapping[str, object]):
     return INTERPOLATE_VAR_PATTERN.sub(lambda m: str(context.get(m.group(1), "")), template)
 
 
-def make_solution_filters() -> list[SolutionFilter]:
+def make_solution_filters(requested_packages: list[mamba.specs.MatchSpec]) -> list[SolutionFilter]:
     """Return default filters on solution."""
     return [
         mamba_press.filter.PackagesFilter(
-            [
+            to_prune=[
                 mamba.specs.MatchSpec.parse("python"),
                 mamba.specs.MatchSpec.parse("python_abi"),
-            ]
+            ],
+            requested_packages=requested_packages,
         )
     ]
 
@@ -69,7 +70,7 @@ def main(
     cache_params: mamba_press.packages.CacheParams,
 ) -> None:
     """Press Conda packages into wheels."""
-    solution_filters = make_solution_filters()
+    solution_filters = make_solution_filters(execution_params.packages)
 
     working_artifacts = mamba_press.execution.create_working_env(
         execution_params=execution_params,
