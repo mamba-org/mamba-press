@@ -2,13 +2,13 @@ import dataclasses
 import logging
 import pathlib
 import tempfile
-from typing import Annotated
+from typing import Annotated, Iterable
 
 import libmambapy as mamba
 
 import mamba_press.packages
 from mamba_press.config import Configurable
-from mamba_press.filter.protocol import SolutionFilter
+from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 
 __logger__ = logging.getLogger(__name__)
 
@@ -124,3 +124,32 @@ def create_working_env(
     )
 
     return artifacts
+
+
+Context = dict[str, str | int]
+
+
+def create_interpolation_context(working_artifacts: WorkingArtifacts) -> Context:
+    """Create the variable used for interpolation in the configuration."""
+    return {
+        "site_package": mamba_press.platform.site_package_dir(working_artifacts.python_package),
+    }
+
+
+def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
+    """Read all the files in the environment."""
+    for p in path.glob("**/*"):
+        if p.is_file():
+            yield p.relative_to(path)
+
+
+def create_working_wheel(
+    working_artifacts: WorkingArtifacts,
+    files_filters: list[FilesFilter],
+):
+    """Filter and transform files from the working environment to the wheel folder."""
+    files: list[pathlib.Path] = []
+    for file in read_env_files(working_artifacts.working_env_path):
+        file_str = str(file)
+        if not any(filter.filter_file(file_str) for filter in files_filters):
+            files.append(file)

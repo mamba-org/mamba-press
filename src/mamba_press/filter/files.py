@@ -15,10 +15,10 @@ class UnixFilesFilter:
     patterns: list[str]
     exclude: bool = True
 
-    def should_keep_file(self, path: str) -> bool:
+    def filter_file(self, path: str) -> bool:
         """Whether the file should be kept i.e. not filtered out."""
         return any(fnmatch.fnmatch(path, pat) for pat in self.patterns) != self.exclude
 
     def filter_files(self, paths: Iterable[str]) -> Iterable[str]:
         """Return the sequence of files not filtered out."""
-        return (p for p in paths if self.should_keep_file(p))
+        return (p for p in paths if self.filter_file(p))

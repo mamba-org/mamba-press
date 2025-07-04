@@ -78,14 +78,12 @@ def main(
         solution_filters=solution_filters,
     )
 
-    context = {
-        "site_package": mamba_press.platform.site_package_dir(working_artifacts.python_package),
-    }
+    context = mamba_press.execution.create_interpolation_context(working_artifacts)
     files_filters = make_files_filters(context)
 
-    files = [str(f) for f in read_env_files(working_artifacts.working_env_path)]
-    for ffilter in files_filters:
-        files = list(ffilter.filter_files(files))
+    mamba_press.execution.create_working_wheel(
+        working_artifacts=working_artifacts, files_filters=files_filters
+    )
 
 
 def add_configurable_to_parser[T](

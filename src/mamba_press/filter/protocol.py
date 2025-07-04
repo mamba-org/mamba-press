@@ -1,4 +1,4 @@
-from typing import Iterable, Protocol
+from typing import Protocol
 
 import libmambapy as mamba
 
@@ -20,6 +20,6 @@ class FilesFilter(Protocol):
     This happens before the packages are collected/downloaded and extracted.
     """
 
-    def filter_files(self, paths: Iterable[str]) -> Iterable[str]:
-        """Return the sequence of files not filtered out."""
+    def filter_file(self, path: str) -> bool:
+        """Whether the file should be kept i.e. not filtered out."""
         ...
