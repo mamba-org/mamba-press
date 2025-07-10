@@ -3,7 +3,7 @@ from pathlib import PurePath
 import mamba_press
 
 
-def test_path_relocate():
+def test_path_relocate() -> None:
     """Relocate according to mapping."""
     relocator = mamba_press.transform.PathRelocate(
         {

@@ -37,7 +37,7 @@ class ExecutionParams:
 class WorkingArtifacts:
     """Object to describe and manage the working environment."""
 
-    working_dir: pathlib.Path | tempfile.TemporaryDirectory
+    working_dir: pathlib.Path | tempfile.TemporaryDirectory[str]
     python_package: mamba.specs.PackageInfo
 
     @property
@@ -103,7 +103,7 @@ def create_working_env(
     for filter in solution_filters:
         solution = filter.filter_solution(solution)
 
-    working_dir: pathlib.Path | tempfile.TemporaryDirectory
+    working_dir: pathlib.Path | tempfile.TemporaryDirectory[str]
     if execution_params.working_dir is None:
         working_dir = tempfile.TemporaryDirectory(prefix="mamba-press")
     else:
@@ -147,7 +147,7 @@ def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
 def create_working_wheel(
     working_artifacts: WorkingArtifacts,
     files_filters: list[FilesFilter],
-):
+) -> None:
     """Filter and transform files from the working environment to the wheel folder."""
     files: list[pathlib.Path] = []
     for file in read_env_files(working_artifacts.working_env_path):

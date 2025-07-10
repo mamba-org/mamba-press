@@ -14,7 +14,7 @@ from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
 
 
-def interpolate(template: str, context: Mapping[str, object]):
+def interpolate(template: str, context: Mapping[str, object]) -> str:
     """Replace variables with a simple JinJa-like syntax."""
     return INTERPOLATE_VAR_PATTERN.sub(lambda m: str(context.get(m.group(1), "")), template)
 
@@ -117,11 +117,11 @@ def add_configurable_to_parser[T](
     )
 
 
-def add_params_to_parser(parser: argparse.ArgumentParser, klass) -> None:
+def add_params_to_parser(parser: argparse.ArgumentParser, klass: type) -> None:
     """Add a parameter dataclass as an argument group to the argument parser."""
     group = parser.add_argument_group(klass.__name__.replace("Params", " Options"), klass.__doc__)
     for field in dataclasses.fields(klass):
-        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)  # type: ignore
+        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)
         if configurable.cli is not None:
             add_configurable_to_parser(group, configurable)  # type: ignore
 
@@ -130,7 +130,7 @@ def load_params[T](cli: Mapping[str, object], env: Mapping[str, str], klass: typ
     """Load a parameters dataclass from inputs."""
     values = {}
     for field in dataclasses.fields(klass):  # type: ignore
-        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)  # type: ignore
+        configurable = mamba_press.config.ExplicitConfigurable.resolve(field)
         values[configurable.name] = configurable.load(cli, env)
 
     return klass(**values)

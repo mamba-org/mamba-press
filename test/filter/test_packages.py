@@ -3,7 +3,7 @@ import libmambapy as mamba
 import mamba_press
 
 
-def test_package_filter_pyarrow():
+def test_package_filter_pyarrow() -> None:
     """Test that packages and orphans are pruned correctly on a pyarrow case."""
     to_prune = [
         mamba.specs.MatchSpec.parse("python"),
@@ -35,7 +35,7 @@ def test_package_filter_pyarrow():
         assert any(ms.contains_except_channel(p) for p in pruned.to_install())
 
 
-def test_python_filter_pinocchio():
+def test_python_filter_pinocchio() -> None:
     """Test that python packages and orphans are pruned correctly on a pinocchio case."""
     requested_packages = [mamba.specs.MatchSpec.parse("pinocchio")]
     solution = make_pinocchio_solution()

@@ -40,7 +40,7 @@ class ExplicitConfigurable[T]:
     type_: type[T]
 
     @staticmethod
-    def __make_convert[U](configurable: Configurable[U], type_) -> Callable[[str], U]:
+    def __make_convert[U](configurable: Configurable[U], type_: type) -> Callable[[str], U]:
         type_origin = typing.get_origin(type_)
 
         if configurable.convert == Default:
@@ -53,14 +53,14 @@ class ExplicitConfigurable[T]:
         return configurable.convert
 
     @staticmethod
-    def resolve[U](field: dataclasses.Field) -> "ExplicitConfigurable[U]":
+    def resolve[U](field: dataclasses.Field[U]) -> "ExplicitConfigurable[U]":
         """Resolve defaults from data class field annotated with a :class:`Configurable`."""
         if isinstance((annotated_type := field.type), str):
             raise ValueError("Type must be Python type")
 
         if hasattr(annotated_type, "__metadata__"):
-            metadata = annotated_type.__metadata__
-            type_ = annotated_type.__origin__
+            metadata = annotated_type.__metadata__  # type: ignore
+            type_ = annotated_type.__origin__  # type: ignore
         else:
             raise ValueError("Type must use `typing.Annotated`")
 

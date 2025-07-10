@@ -2,15 +2,16 @@
 
 import logging
 
-from . import config, execution, filter, packages, platform
+from . import config, execution, filter, packages, platform, transform
 
 __all__ = [
     "config",
     "execution",
+    "execution",
     "filter",
     "packages",
     "platform",
-    "execution",
+    "transform",
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())

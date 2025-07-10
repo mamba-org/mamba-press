@@ -1,7 +1,7 @@
 import dataclasses
 import os
 import pathlib
-from typing import Annotated, Final, Iterable, cast
+from typing import Annotated, Callable, Final, Iterable, cast
 
 import libmambapy as mamba
 
@@ -80,7 +80,7 @@ def make_package_cache(cache_params: CacheParams) -> mamba.MultiPackageCache:
 
     return mamba.MultiPackageCache(
         validation_params=validation_params,
-        pkgs_dirs=cast(list, cache_params.package_dirs),
+        pkgs_dirs=cast(list[os.PathLike[str]], cache_params.package_dirs),
     )
 
 
@@ -172,10 +172,10 @@ def solve_for_packages(
     return outcome
 
 
-def __make_context_getter():
+def __make_context_getter() -> Callable[[], mamba.Context]:
     ctx = mamba.Context()
 
-    def get_context():
+    def get_context() -> mamba.Context:
         nonlocal ctx
         return ctx
 
