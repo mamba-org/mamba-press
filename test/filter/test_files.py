@@ -5,27 +5,27 @@ def test_glob_file_filter():
     """Files are excluded if they match any pattern."""
     filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"])
 
-    assert next(filter.filter_files(["bar.txt"]), None) is not None
-    assert next(filter.filter_files(["bar/baz.txt"]), None) is not None
-    assert next(filter.filter_files(["file.hpp.in"]), None) is not None
+    assert filter.filter_file("bar.txt")
+    assert filter.filter_file("bar/baz.txt")
+    assert filter.filter_file("file.hpp.in")
 
-    assert next(filter.filter_files(["foo/bar/baz.txt"]), None) is None
-    assert next(filter.filter_files(["the/foo/bar/baz.txt"]), None) is None
-    assert next(filter.filter_files(["the/foo/bar/baz.txt"]), None) is None
-    assert next(filter.filter_files(["file.hpp"]), None) is None
-    assert next(filter.filter_files(["folder/file.hpp"]), None) is None
+    assert not filter.filter_file("foo/bar/baz.txt")
+    assert not filter.filter_file("the/foo/bar/baz.txt")
+    assert not filter.filter_file("the/foo/bar/baz.txt")
+    assert not filter.filter_file("file.hpp")
+    assert not filter.filter_file("folder/file.hpp")
 
 
 def test_glob_file_filter_include():
     """Files are included if they match any pattern."""
     filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"], exclude=False)
 
-    assert next(filter.filter_files(["bar.txt"]), None) is None
-    assert next(filter.filter_files(["bar/baz.txt"]), None) is None
-    assert next(filter.filter_files(["file.hpp.in"]), None) is None
+    assert not filter.filter_file("bar.txt")
+    assert not filter.filter_file("bar/baz.txt")
+    assert not filter.filter_file("file.hpp.in")
 
-    assert next(filter.filter_files(["foo/bar/baz.txt"]), None) is not None
-    assert next(filter.filter_files(["the/foo/bar/baz.txt"]), None) is not None
-    assert next(filter.filter_files(["the/foo/bar/baz.txt"]), None) is not None
-    assert next(filter.filter_files(["file.hpp"]), None) is not None
-    assert next(filter.filter_files(["folder/file.hpp"]), None) is not None
+    assert filter.filter_file("foo/bar/baz.txt")
+    assert filter.filter_file("the/foo/bar/baz.txt")
+    assert filter.filter_file("the/foo/bar/baz.txt")
+    assert filter.filter_file("file.hpp")
+    assert filter.filter_file("folder/file.hpp")
