@@ -1,5 +1,6 @@
 import dataclasses
 import fnmatch
+import pathlib
 
 
 @dataclasses.dataclass(frozen=True)
@@ -14,6 +15,6 @@ class UnixFilesFilter:
     patterns: list[str]
     exclude: bool = True
 
-    def filter_file(self, path: str) -> bool:
+    def filter_file(self, path: pathlib.PurePath) -> bool:
         """Whether the file should be kept i.e. not filtered out."""
-        return any(fnmatch.fnmatch(path, pat) for pat in self.patterns) != self.exclude
+        return any(fnmatch.fnmatch(str(path), pat) for pat in self.patterns) != self.exclude

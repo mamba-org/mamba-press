@@ -1,3 +1,4 @@
+import pathlib
 from typing import Protocol
 
 import libmambapy as mamba
@@ -20,6 +21,6 @@ class FilesFilter(Protocol):
     This happens before the packages are collected/downloaded and extracted.
     """
 
-    def filter_file(self, path: str) -> bool:
+    def filter_file(self, path: pathlib.PurePath) -> bool:
         """Whether the file should be kept i.e. not filtered out."""
         ...

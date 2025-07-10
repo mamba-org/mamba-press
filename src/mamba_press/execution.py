@@ -151,6 +151,6 @@ def create_working_wheel(
     """Filter and transform files from the working environment to the wheel folder."""
     files: list[pathlib.Path] = []
     for file in read_env_files(working_artifacts.working_env_path):
-        file_str = str(file)
-        if not any(filter.filter_file(file_str) for filter in files_filters):
+        pure_file = pathlib.PurePath(file)
+        if not any(filter.filter_file(pure_file) for filter in files_filters):
             files.append(file)
