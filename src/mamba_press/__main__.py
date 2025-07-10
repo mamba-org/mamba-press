@@ -10,6 +10,7 @@ import libmambapy as mamba
 
 import mamba_press
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.transform.protocol import PathTransform
 
 INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
 
@@ -40,19 +41,35 @@ def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
                 "conda-meta/*",
                 "etc/conda/*",
                 "man/*",
+                "ssl/*",
                 "share/man/*",
+                "share/terminfo/*",
+                "share/locale/*",
                 "bin/*",
                 "sbin/*",
                 "include/*",
                 "lib/pkgconfig/*",
                 "lib/cmake/*",
                 "*.a",
-                interpolate("${{ site_packages }}/*.dist-info", context),
-                interpolate("${{ site_packages }}/*.egg-info", context),
                 "*.pyc",
-                "*/__pycache__/",
+                "*/__pycache__/*",
+                interpolate("${{ site_packages }}/*.dist-info/INSTALLER", context),
+                interpolate("${{ site_packages }}/*.dist-info/REQUESTED", context),
             ],
             exclude=True,
+        ),
+    ]
+
+
+def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
+    """Return default path transforms."""
+    return [
+        mamba_press.transform.PathRelocate(
+            {
+                pathlib.PurePath(interpolate("${{ site_packages }}/", context)): pathlib.PurePath("."),
+                # Due to lowest specificity, this will oonly be applied to remaining files
+                pathlib.PurePath("."): pathlib.PurePath(interpolate("${{ package_name }}/data/", context)),
+            }
         ),
     ]
 
@@ -81,9 +98,12 @@ def main(
 
     context = mamba_press.execution.create_interpolation_context(working_artifacts)
     files_filters = make_files_filters(context)
+    path_transforms = make_path_transforms(context)
 
     mamba_press.execution.create_working_wheel(
-        working_artifacts=working_artifacts, files_filters=files_filters
+        working_artifacts=working_artifacts,
+        files_filters=files_filters,
+        path_transforms=path_transforms,
     )
 
 
