@@ -145,7 +145,7 @@ def manylinux_aarch64_virtual_packages(glibc_version: str) -> list[mamba.specs.P
     ]
 
 
-def site_package_dir(python: mamba.specs.PackageInfo) -> str:
+def site_packages_dir(python: mamba.specs.PackageInfo) -> str:
     """Get the site-package relative directory."""
     if python.platform.startswith("win"):
         return "Lib/site-packages"

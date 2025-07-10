@@ -133,7 +133,7 @@ Context = dict[str, str | int]
 def create_interpolation_context(working_artifacts: WorkingArtifacts) -> Context:
     """Create the variable used for interpolation in the configuration."""
     return {
-        "site_package": mamba_press.platform.site_package_dir(working_artifacts.python_package),
+        "site_packages": mamba_press.platform.site_packages_dir(working_artifacts.python_package),
     }
 
 
