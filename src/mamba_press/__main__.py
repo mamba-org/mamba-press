@@ -1,5 +1,6 @@
 import argparse
 import dataclasses
+import logging
 import os
 import pathlib
 import re
@@ -157,6 +158,9 @@ def load_params[T](cli: Mapping[str, object], env: Mapping[str, str], klass: typ
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s]: %(message)s")
+    logging.getLogger("mamba_press").setLevel(logging.INFO)
+
     parser = argparse.ArgumentParser(
         prog="python -m mamba_press",
         description="Press Conda packages into wheels",
