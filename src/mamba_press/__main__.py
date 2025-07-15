@@ -157,9 +157,44 @@ def load_params[T](cli: Mapping[str, object], env: Mapping[str, str], klass: typ
     return klass(**values)
 
 
+class ColoredLoggingFormatter(logging.Formatter):
+    """A logging formatter with optiniated color printing.
+
+    The primary use is to turn the logs into a CLI output.
+    """
+
+    BLUE = "\x1b[34;20m"
+    YELLOW = "\x1b[33;20m"
+    RED = "\x1b[31;20m"
+    BOLD_RED = "\x1b[31;1m"
+    RESET = "\x1b[0m"
+
+    def __init__(self, base_format: str = "%(message)s") -> None:
+        self.formatters = {
+            logging.DEBUG: logging.Formatter(self.BLUE + base_format + self.BLUE),
+            logging.INFO: logging.Formatter(base_format),
+            logging.WARNING: logging.Formatter(self.YELLOW + base_format + self.RESET),
+            logging.ERROR: logging.Formatter(self.RED + base_format + self.RESET),
+            logging.CRITICAL: logging.Formatter(self.BOLD_RED + base_format + self.RESET),
+        }
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the specified record as text."""
+        return self.formatters[record.levelno].format(record)
+
+
+def setup_cli_logging(logger: logging.Logger, level: str | int = logging.INFO) -> None:
+    """Initialize logger to print to stdout with color formatting."""
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(level)
+    stream_handler.setFormatter(ColoredLoggingFormatter())
+
+    logger.setLevel(level)
+    logger.addHandler(stream_handler)
+
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s]: %(message)s")
-    logging.getLogger("mamba_press").setLevel(logging.INFO)
+    setup_cli_logging(logging.getLogger("mamba_press"))
 
     parser = argparse.ArgumentParser(
         prog="python -m mamba_press",
