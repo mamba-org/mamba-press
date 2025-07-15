@@ -6,6 +6,8 @@ from typing import Callable, Final, Iterable, cast
 
 import lief
 
+from . import utils
+
 __logger__ = logging.getLogger(__name__)
 
 # https://github.com/conda/conda-build/blob/main/conda_build/post.py
@@ -49,14 +51,6 @@ def simple_rpath_load_command(lib_path: pathlib.PurePath | str) -> str:
     return "@rpath/{}".format(pathlib.PurePath(lib_path).name)
 
 
-def relative_relocation_path(
-    lib_path: pathlib.PurePath, dep_path: pathlib.PurePath, origin: str = "@loader_path"
-) -> pathlib.PurePath:
-    """Create a relative load path between two paths."""
-    relative = os.path.relpath(dep_path.parent, lib_path.parent)
-    return pathlib.PurePath(origin) / relative
-
-
 def load_commands(lib: lief.MachO.Binary) -> list[lief.MachO.DylibCommand]:
     """Return dynamic load commands from library.
 
@@ -88,11 +82,6 @@ def binary_name(lib: lief.MachO.Binary) -> lief.MachO.DylibCommand | None:
     return None
 
 
-def path_in_ensemble(path: str | pathlib.Path, ensemble: Iterable[str | pathlib.Path]) -> bool:
-    """Check if a path is in an ensemble with path comparison."""
-    return any(pathlib.Path(path) == pathlib.Path(p) for p in ensemble)
-
-
 def relocate_lib(
     lib: lief.MachO.Binary,
     lib_path: pathlib.Path,
@@ -107,7 +96,7 @@ def relocate_lib(
     if (old_name_cmd := binary_name(lib)) is not None:
         old_name: str = old_name_cmd.name
         new_name = simple_rpath_load_command(new_lib_path)
-        if not path_in_ensemble(new_name, [old_name]):
+        if not utils.path_in_ensemble(new_name, [old_name]):
             old_name_cmd.name = new_name
             __logger__.info(f"{lib_path_relative}: Patching name {old_name} -> {new_name}")
 
@@ -140,12 +129,18 @@ def relocate_lib(
             continue
 
         new_dep_path = path_transform(dep_path)
-        new_cmd = simple_rpath_load_command(new_dep_path)
-        if not path_in_ensemble(new_cmd, [cmd_name]):
-            cmd.name = str(new_cmd)
-            __logger__.info(f"{lib_path_relative}: Patching dependency {cmd_name} -> {new_cmd}")
+        new_cmd_name = simple_rpath_load_command(new_dep_path)
+        if not utils.path_in_ensemble(new_cmd_name, [cmd_name]):
+            cmd.name = str(new_cmd_name)
+            __logger__.info(f"{lib_path_relative}: Patching dependency {cmd_name} -> {new_cmd_name}")
 
-        new_rpath = str(relative_relocation_path(lib_path=new_lib_path, dep_path=new_dep_path))
-        if not path_in_ensemble(new_rpath, original_rpaths):
+        new_rpath = str(
+            utils.relative_relocation_path(
+                lib_path=new_lib_path,
+                dep_path=new_dep_path,
+                origin="@loader_path",
+            )
+        )
+        if not utils.path_in_ensemble(new_rpath, original_rpaths):
             lib.add(cast(lief.MachO.LoadCommand, lief.MachO.RPathCommand.create(new_rpath)))
             __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")

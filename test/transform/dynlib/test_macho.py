@@ -82,18 +82,3 @@ def test_normalize_load_path() -> None:
     ) == [pathlib.Path("/origin//origin/libfoo.dylib")]
 
     assert macho.normalize_load_path(path="@rpath/libfoo.dylib", origin="/origin", rpaths=[]) == []
-
-
-def test_relative_relocation_path() -> None:
-    """Relocation paths uses special keywords."""
-    assert macho.relative_relocation_path(
-        pathlib.PurePath("/lib/liba.dylib"), pathlib.PurePath("/lib/libc.dylib")
-    ) == pathlib.PurePath("@loader_path/")
-
-    assert macho.relative_relocation_path(
-        pathlib.PurePath("/lib/liba.dylib"), pathlib.PurePath("/lib/hidden/libc.dylib")
-    ) == pathlib.PurePath("@loader_path/hidden")
-
-    assert macho.relative_relocation_path(
-        pathlib.PurePath("/lib/python3.8/site-packages/pkg/liba.dylib"), pathlib.PurePath("/lib/libc.dylib")
-    ) == pathlib.PurePath("@loader_path/../../..")
