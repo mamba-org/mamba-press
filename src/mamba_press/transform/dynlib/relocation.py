@@ -4,6 +4,7 @@ from typing import Callable
 
 import lief
 
+import mamba_press.transform.dynlib.elf
 import mamba_press.transform.dynlib.macho
 
 __logger__ = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class DynamicLibRelocate:
             data_converted = list(data)
         else:
             data_converted = str(data)
-        return lief.is_macho(data_converted)
+        return lief.is_macho(data_converted) or lief.is_elf(data_converted)
 
     def transform_data(
         self,
@@ -45,6 +46,16 @@ class DynamicLibRelocate:
                 path_transform=path_transform,
             )
             # Also fat.raw with a MacOS Fat binary
+            return lib.write_to_bytes()
+
+        if isinstance(lib, lief.ELF.Binary):
+            __logger__.debug(f'Relocating ELF "{data_path}"')
+            mamba_press.transform.dynlib.elf.relocate_lib(
+                lib=lib,
+                lib_path=data_path,
+                prefix_path=prefix_path,
+                path_transform=path_transform,
+            )
             return lib.write_to_bytes()
 
         raise NotImplementedError(f"Library relocation not implemented for {type(lib)} format")
