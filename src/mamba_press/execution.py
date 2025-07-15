@@ -5,11 +5,12 @@ import logging
 import os
 import pathlib
 import tempfile
-from typing import Annotated, Iterable
+from typing import Annotated, Callable, Iterable
 
 import libmambapy as mamba
 
 import mamba_press.packages
+import mamba_press.transform.dynlib.relocation
 from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.transform.protocol import PathTransform
@@ -173,6 +174,22 @@ def read_env_files(path: pathlib.Path) -> Iterable[pathlib.PurePath]:
             yield p.relative_to(path)
 
 
+def __make_path_transform(
+    working_env_path: pathlib.Path, path_transforms: list[PathTransform]
+) -> Callable[[pathlib.Path], pathlib.Path]:
+    def transform(path: pathlib.Path) -> pathlib.Path:
+        if not path.is_relative_to(working_env_path):
+            return path
+
+        if path.is_symlink():
+            path = path.resolve()
+        rel_src = pathlib.PurePath(path.relative_to(working_env_path))
+        dest = functools.reduce(lambda p, t: t.transform_path(p), path_transforms, rel_src)
+        return pathlib.Path(dest)
+
+    return transform
+
+
 def create_working_wheel(
     working_artifacts: WorkingArtifacts,
     files_filters: list[FilesFilter],
@@ -183,17 +200,37 @@ def create_working_wheel(
     # client, such as Python entry points and should be excluded in some form.
     # See PrefixData json data in conda-meta/ subfolder.
     files: dict[pathlib.PurePath, pathlib.PurePath] = {}
-    for src in read_env_files(working_artifacts.working_env_path):
-        if any(not filter.filter_file(src) for filter in files_filters):
-            __logger__.debug(f'Filtering out file "{src}"')
+    for rel_src in read_env_files(working_artifacts.working_env_path):
+        if any(not filter.filter_file(rel_src) for filter in files_filters):
+            __logger__.debug(f'Filtering out file "{rel_src}"')
             continue
 
-        dest = functools.reduce(lambda p, t: t.transform_path(p), path_transforms, src)
-        __logger__.debug(f'Transforming "{src}" -> "{dest}"')
-        files[src] = pathlib.Path(dest)
+        rel_dest = functools.reduce(lambda p, t: t.transform_path(p), path_transforms, rel_src)
+        __logger__.debug(f'Transforming "{rel_src}" -> "{rel_dest}"')
+        files[rel_src] = pathlib.PurePath(rel_dest)
 
+    # TODO: Could we use a general enough DataTransform Protocol?
+    relocator = mamba_press.transform.dynlib.relocation.DynamicLibRelocate()
     for rel_src, rel_dest in files.items():
         abs_src = working_artifacts.working_env_path / rel_src
         abs_dest = working_artifacts.working_wheel_path / rel_dest
+
         abs_dest.parent.mkdir(parents=True, exist_ok=True)
-        os.link(abs_src, abs_dest)
+
+        if relocator.needed(abs_src):
+            # Symlinks are not supported in wheels, we relocate the libs to point to
+            # their exact version
+            if abs_src.is_symlink():
+                continue
+            with open(abs_src, "rb") as f:
+                data = relocator.transform_data(
+                    data=f.read(),
+                    data_path=abs_src,
+                    prefix_path=working_artifacts.working_env_path,
+                    path_transform=__make_path_transform(working_artifacts.working_env_path, path_transforms),
+                )
+            with open(abs_dest, "wb+") as f:
+                f.write(data)
+
+        else:
+            os.link(abs_src, abs_dest)

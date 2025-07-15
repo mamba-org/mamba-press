@@ -40,13 +40,14 @@ platforms = ["osx-arm64", "linux-64", "win-64"]
 default = { solve-group = "default" }
 dev = { features = ["dev", "test"], solve-group = "default" }
 
-[tool.pixi.pypi-dependencies]
-mamba_press = { path = ".", editable = true }
-
 [tool.pixi.dependencies]
 python = ">=3.12.3"
 libmambapy = ">=2.3.0"
-py-lief = "*"
+# py-lief = ">=0.16.6"
+
+[tool.pixi.pypi-dependencies]
+lief = { index = "https://lief.s3-website.fr-par.scw.cloud/latest", version = ">=0.17.0.dev0" }
+mamba_press = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 mamba-press = "python -m mamba_press"
