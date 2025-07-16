@@ -48,6 +48,13 @@ def relocate_lib(
     lib_path_relative = lib_path.relative_to(prefix_path)
     new_lib_path = path_transform(lib_path)
 
+    if (soname := lib.get(lief.ELF.DynamicEntry.TAG.SONAME)) is not None:
+        old_name: str = soname.name  # type: ignore
+        new_name = new_lib_path.name
+        if not utils.path_in_ensemble(new_name, [old_name]):
+            soname.name = new_name  # type: ignore
+            __logger__.info(f"{lib_path_relative}: Patching name {old_name} -> {new_name}")
+
     origin_path = str(lib_path.parent)
     original_rpaths = [rp for entry in rpaths_runpaths(lib) for rp in entry.paths]
     resolved_rpaths = [resolve_rpath(rp, origin=origin_path) for rp in original_rpaths]
