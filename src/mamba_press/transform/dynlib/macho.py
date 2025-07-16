@@ -10,13 +10,16 @@ from . import utils
 
 __logger__ = logging.getLogger(__name__)
 
-# https://github.com/conda/conda-build/blob/main/conda_build/post.py
 MACOS_DYLIB_WHITELIST: Final = [
+    # https://github.com/conda/conda-build/blob/main/conda_build/post.py
     re.compile(r"/opt/X11/.*\.dylib"),
     re.compile(r"/usr/lib/libcrypto\.0\.9\.8\.dylib"),
     re.compile(r"/usr/lib/libobjc\.A\.dylib"),
     re.compile(r"/System/Library/Frameworks/.*\.framework/"),
     re.compile(r"/usr/lib/libSystem\.B\.dylib"),
+    # Common low-level DSO whitelist from
+    re.compile(r"/usr/lib/libc\+\+abi\.dylib"),
+    re.compile(r"/usr/lib/libresolv.*\.dylib"),
 ]
 
 
