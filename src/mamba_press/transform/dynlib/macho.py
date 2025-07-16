@@ -64,7 +64,7 @@ def load_commands(lib: lief.MachO.Binary) -> list[lief.MachO.DylibCommand]:
     ]
 
 
-def binary_name(lib: lief.MachO.Binary) -> lief.MachO.DylibCommand | None:
+def lib_name(lib: lief.MachO.Binary) -> str | None:
     """Return MacOS binary name command LC_ID_DYLIB or install-name.
 
     There is typically only one for libraries, and none for executables.
@@ -78,46 +78,38 @@ def binary_name(lib: lief.MachO.Binary) -> lief.MachO.DylibCommand | None:
     if len(names) == 0:
         return None
     if len(names) == 1:
-        return names[0]
+        return os.path.basename(names[0].name)
     return None
 
 
-def relocate_lib(
-    lib: lief.MachO.Binary,
-    lib_path: pathlib.Path,
+def relocate_bin(
+    bin: lief.MachO.Binary,
+    bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
 ) -> None:
-    """Relocate the given library to load dynamic libraries with relative path."""
-    lib_path_relative = lib_path.relative_to(prefix_path)
-    new_lib_path = path_transform(lib_path)
+    """Relocate the given binary to load dynamic libraries with relative path."""
+    bin_path_relative = bin_path.relative_to(prefix_path)
+    new_lib_path = path_transform(bin_path)
 
-    # Fix library name: this is MacOS specific
-    if (old_name_cmd := binary_name(lib)) is not None:
-        old_name: str = old_name_cmd.name
-        new_name = simple_rpath_load_command(new_lib_path)
-        if not utils.path_in_ensemble(new_name, [old_name]):
-            old_name_cmd.name = new_name
-            __logger__.info(f"{lib_path_relative}: Patching name {old_name} -> {new_name}")
-
-    origin_path = str(lib_path.parent)
-    original_rpaths = [r.path for r in lib.rpaths]
+    origin_path = str(bin_path.parent)
+    original_rpaths = [r.path for r in bin.rpaths]
     resolved_rpaths = normalize_rpaths(original_rpaths, origin=origin_path)
 
     # We would need to find how RPATH are used before correcting them.
     # Instead we remove them and let the follow-up add them.
-    for rpath in lib.rpaths:
+    for rpath in bin.rpaths:
         if pathlib.Path(rpath.path).is_relative_to(prefix_path):
-            lib.remove(rpath)
-            __logger__.info(f"{lib_path_relative}: Removing RPATH {rpath}")
+            bin.remove(rpath)
+            __logger__.info(f"{bin_path_relative}: Removing RPATH {rpath}")
 
     # Fix all the dynamic import libraries
     added_rpaths: list[str] = []
-    for cmd in load_commands(lib):
+    for cmd in load_commands(bin):
         cmd_name = cmd.name
         # Note that some whitelisted libs don't exist but are embedded in the linker
         if lib_is_whitelisted(cmd_name):
-            __logger__.debug(f"{lib_path_relative}: Whitelisting dependency {cmd.name}")
+            __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {cmd.name}")
             continue
 
         # Find where the dependency is pointing to
@@ -126,23 +118,20 @@ def relocate_lib(
             # TODO: configure behaviour
             # We could also read from the dso whitelist on the recipe but we would need
             # to be able to parse the old recipe format.
-            __logger__.warning(f"""Cannot find library "{cmd_name}" in "{lib_path}".""")
+            __logger__.warning(f"""Cannot find library "{cmd_name}" in "{bin_path}".""")
             continue
 
+        # Note that this may not have the proper lib ID associated with path_transform, but since
+        # the filename is not in the RPATH, we can base the changes on it.
         new_dep_path = path_transform(dep_path)
-        new_cmd_name = simple_rpath_load_command(new_dep_path)
-        if not utils.path_in_ensemble(new_cmd_name, [cmd_name]):
-            cmd.name = str(new_cmd_name)
-            __logger__.info(f"{lib_path_relative}: Patching dependency {cmd_name} -> {new_cmd_name}")
-
         new_rpath = str(
             utils.relative_relocation_path(
-                lib_path=new_lib_path,
+                bin_path=new_lib_path,
                 dep_path=new_dep_path,
                 origin="@loader_path",
             )
         )
         if not utils.path_in_ensemble(new_rpath, original_rpaths + added_rpaths):
-            lib.add(cast(lief.MachO.LoadCommand, lief.MachO.RPathCommand.create(new_rpath)))
+            bin.add(cast(lief.MachO.LoadCommand, lief.MachO.RPathCommand.create(new_rpath)))
             added_rpaths.append(new_rpath)
-            __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")
+            __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")

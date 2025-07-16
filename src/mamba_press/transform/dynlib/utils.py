@@ -9,8 +9,8 @@ def path_in_ensemble(path: str | pathlib.Path, ensemble: Iterable[str | pathlib.
 
 
 def relative_relocation_path(
-    lib_path: pathlib.PurePath, dep_path: pathlib.PurePath, origin: str
+    bin_path: pathlib.PurePath, dep_path: pathlib.PurePath, origin: str
 ) -> pathlib.PurePath:
     """Create a relative load path between two paths."""
-    relative = os.path.relpath(dep_path.parent, lib_path.parent)
+    relative = os.path.relpath(dep_path.parent, bin_path.parent)
     return pathlib.PurePath(origin) / relative

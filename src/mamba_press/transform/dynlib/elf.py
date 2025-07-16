@@ -38,38 +38,38 @@ def resolve_dynamic_library(filename: str, rpaths: list[pathlib.Path]) -> pathli
     return None
 
 
-def relocate_lib(
-    lib: lief.ELF.Binary,
-    lib_path: pathlib.Path,
+def lib_name(lib: lief.ELF.Binary) -> str | None:
+    """Return the SONAME of the binary, if any."""
+    if (soname := lib.get(lief.ELF.DynamicEntry.TAG.SONAME)) is not None:
+        return soname.name  # type: ignore
+    return None
+
+
+def relocate_bin(
+    bin: lief.ELF.Binary,
+    bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
 ) -> None:
-    """Relocate the given library to load dynamic libraries with relative path."""
-    lib_path_relative = lib_path.relative_to(prefix_path)
-    new_lib_path = path_transform(lib_path)
+    """Relocate the given binary to load dynamic libraries with relative path."""
+    bin_path_relative = bin_path.relative_to(prefix_path)
+    new_bin_path = path_transform(bin_path)
 
-    if (soname := lib.get(lief.ELF.DynamicEntry.TAG.SONAME)) is not None:
-        old_name: str = soname.name  # type: ignore
-        new_name = new_lib_path.name
-        if not utils.path_in_ensemble(new_name, [old_name]):
-            soname.name = new_name  # type: ignore
-            __logger__.info(f"{lib_path_relative}: Patching name {old_name} -> {new_name}")
-
-    origin_path = str(lib_path.parent)
-    original_rpaths = [rp for entry in rpaths_runpaths(lib) for rp in entry.paths]
+    origin_path = str(bin_path.parent)
+    original_rpaths = [rp for entry in rpaths_runpaths(bin) for rp in entry.paths]
     resolved_rpaths = [resolve_rpath(rp, origin=origin_path) for rp in original_rpaths]
 
     # We would need to find how RPATH are used before correcting them.
     # Instead we remove them and let the follow-up add them.
-    for entry in rpaths_runpaths(lib):
+    for entry in rpaths_runpaths(bin):
         for rpath in entry.paths:
             if pathlib.Path(rpath).is_relative_to(prefix_path):
                 entry.remove(rpath)
-                __logger__.info(f"{lib_path_relative}: Removing RPATH {rpath}")
+                __logger__.info(f"{bin_path_relative}: Removing RPATH {rpath}")
 
     # Fix all the dynamic import libraries
     added_rpaths: list[str] = []
-    for dep in dynamic_libraries(lib):
+    for dep in dynamic_libraries(bin):
         dep_name = str(dep.name)
 
         # Find where the dependency is pointing to
@@ -78,24 +78,21 @@ def relocate_lib(
             # TODO: configure behaviour
             # We could also read from the dso whitelist on the recipe but we would need
             # to be able to parse the old recipe format.
-            __logger__.warning(f"""Cannot find library "{dep_name}" in "{lib_path}".""")
+            __logger__.warning(f"""Cannot find library "{dep_name}" in "{bin_path}".""")
             continue
 
+        # Note that this may not have the proper SONAME associated with path_transform, but since
+        # the filename is not in the RPATH, we can base the changes on it.
         new_dep_path = path_transform(dep_path)
-        new_dep_name = new_dep_path.name
-        if not utils.path_in_ensemble(new_dep_name, [dep_name]):
-            dep.name = str(new_dep_name)
-            __logger__.info(f"{lib_path_relative}: Patching dependency {dep_name} -> {new_dep_name}")
-
         new_rpath = str(
             utils.relative_relocation_path(
-                lib_path=new_lib_path,
+                bin_path=new_bin_path,
                 dep_path=new_dep_path,
                 origin="$ORIGIN",
             )
         )
         if not utils.path_in_ensemble(new_rpath, original_rpaths + added_rpaths):
-            # Conda-build seems to prefer RPATHs
-            lib.add(lief.ELF.DynamicEntryRunPath(new_rpath))
+            # Conda-build seems to prefer RPATHs, but they did not seem to work.
+            bin.add(lief.ELF.DynamicEntryRunPath(new_rpath))
             added_rpaths.append(new_rpath)
-            __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")
+            __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")

@@ -210,6 +210,8 @@ def create_working_wheel(
         files[rel_src] = pathlib.PurePath(rel_dest)
 
     # TODO: Could we use a general enough DataTransform Protocol?
+    # This is why the relocator was made into a class even though it does not have any
+    # instance data.
     relocator = mamba_press.transform.dynlib.relocation.DynamicLibRelocate()
     for rel_src, rel_dest in files.items():
         abs_src = working_artifacts.working_env_path / rel_src
@@ -219,18 +221,24 @@ def create_working_wheel(
 
         if relocator.needed(abs_src):
             # Symlinks are not supported in wheels, we relocate the libs to point to
-            # their exact version
+            # their exact library name versions.
             if abs_src.is_symlink():
                 continue
             with open(abs_src, "rb") as f:
-                data = relocator.transform_data(
-                    data=f.read(),
+                bin = relocator.parse_binary(f.read())
+                relocator.relocate_binary(
+                    bin=bin,
                     data_path=abs_src,
                     prefix_path=working_artifacts.working_env_path,
                     path_transform=__make_path_transform(working_artifacts.working_env_path, path_transforms),
                 )
-            with open(abs_dest, "wb+") as f:
-                f.write(data)
+            # A previous version was modifying the library name (soname, id) and dynamic loading
+            # but resulted in invalid binaries.
+            # Instead, we leave the all names unchanged and set the file name to the library name.
+            # This is less flexible and more error-prone, but works for now.
+            if (name := relocator.lib_name(bin)) is not None:
+                abs_dest = abs_dest.with_name(name)
+            relocator.write_binary(bin, abs_dest)
 
         else:
             os.link(abs_src, abs_dest)
