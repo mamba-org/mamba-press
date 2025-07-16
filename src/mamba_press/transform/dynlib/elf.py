@@ -12,7 +12,11 @@ __logger__ = logging.getLogger(__name__)
 
 def dynamic_libraries(lib: lief.ELF.Binary) -> list[lief.ELF.DynamicEntryLibrary]:
     """Return the dynamic libraries required byte ELF."""
-    return [entry for entry in lib.dynamic_entries if isinstance(entry, lief.ELF.DynamicEntryLibrary)]
+    return [
+        entry
+        for entry in lib.dynamic_entries
+        if isinstance(entry, lief.ELF.DynamicEntryLibrary) and entry.tag == lief.ELF.DynamicEntry.TAG.NEEDED
+    ]
 
 
 def rpaths_runpaths(lib: lief.ELF.Binary) -> list[lief.ELF.DynamicEntryRunPath | lief.ELF.DynamicEntryRpath]:
