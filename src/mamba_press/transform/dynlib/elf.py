@@ -96,6 +96,6 @@ def relocate_lib(
         )
         if not utils.path_in_ensemble(new_rpath, original_rpaths + added_rpaths):
             # Conda-build seems to prefer RPATHs
-            lib.add(lief.ELF.DynamicEntryRpath(new_rpath))
+            lib.add(lief.ELF.DynamicEntryRunPath(new_rpath))
             added_rpaths.append(new_rpath)
             __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")
