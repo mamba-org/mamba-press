@@ -112,6 +112,7 @@ def relocate_lib(
             __logger__.info(f"{lib_path_relative}: Removing RPATH {rpath}")
 
     # Fix all the dynamic import libraries
+    added_rpaths: list[str] = []
     for cmd in load_commands(lib):
         cmd_name = cmd.name
         # Note that some whitelisted libs don't exist but are embedded in the linker
@@ -141,6 +142,7 @@ def relocate_lib(
                 origin="@loader_path",
             )
         )
-        if not utils.path_in_ensemble(new_rpath, original_rpaths):
+        if not utils.path_in_ensemble(new_rpath, original_rpaths + added_rpaths):
             lib.add(cast(lief.MachO.LoadCommand, lief.MachO.RPathCommand.create(new_rpath)))
+            added_rpaths.append(new_rpath)
             __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")

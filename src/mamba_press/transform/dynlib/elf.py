@@ -61,6 +61,7 @@ def relocate_lib(
                 __logger__.info(f"{lib_path_relative}: Removing RPATH {rpath}")
 
     # Fix all the dynamic import libraries
+    added_rpaths: list[str] = []
     for dep in dynamic_libraries(lib):
         dep_name = str(dep.name)
 
@@ -86,7 +87,8 @@ def relocate_lib(
                 origin="$ORIGIN",
             )
         )
-        if not utils.path_in_ensemble(new_rpath, original_rpaths):
+        if not utils.path_in_ensemble(new_rpath, original_rpaths + added_rpaths):
             # Conda-build seems to prefer RPATHs
             lib.add(lief.ELF.DynamicEntryRpath(new_rpath))
+            added_rpaths.append(new_rpath)
             __logger__.info(f"{lib_path_relative}: Adding RPATH {new_rpath}")
