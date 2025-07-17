@@ -2,6 +2,8 @@ import dataclasses
 import fnmatch
 import pathlib
 
+import mamba_press.platform
+
 from .protocol import FilesFilter
 
 
@@ -38,3 +40,20 @@ class CombinedFilesFilter(FilesFilter):
         if self.all:
             return all(f.filter_file(path) for f in self.filters)
         return any(f.filter_file(path) for f in self.filters)
+
+
+class ManyLinuxWhitelist(FilesFilter):
+    """Whitelist library allowed by manylinux spec."""
+
+    def __init__(self, platform: str) -> None:
+        import auditwheel.policy
+
+        split = mamba_press.platform.WheelPlatformSplit.parse(platform)
+        self.policy = auditwheel.policy.WheelPolicies(
+            libc=auditwheel.libc.Libc.GLIBC,  # Always on conda-forge
+            arch=getattr(auditwheel.architecture.Architecture, split.arch),
+        ).get_policy_by_name(platform)
+
+    def filter_file(self, path: pathlib.PurePath) -> bool:
+        """Filter libraries using autiwheel policies."""
+        return path.name in self.policy.whitelist
