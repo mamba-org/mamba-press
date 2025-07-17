@@ -31,3 +31,19 @@ def test_glob_file_filter_include() -> None:
     assert filter.filter_file(PurePath("the/foo/bar/baz.txt"))
     assert filter.filter_file(PurePath("file.hpp"))
     assert filter.filter_file(PurePath("folder/file.hpp"))
+
+
+def test_combined_filter() -> None:
+    """Combined filter apply all filters."""
+    filter1 = mamba_press.filter.UnixFilesFilter(["lib/*"], exclude=False)
+    filter2 = mamba_press.filter.UnixFilesFilter(["lib/python/*"], exclude=False)
+
+    combined_all = mamba_press.filter.CombinedFilesFilter([filter1, filter2], all=True)
+    assert combined_all.filter_file(PurePath("lib/python/bar.py"))
+    assert not combined_all.filter_file(PurePath("lib/bar.so"))
+    assert not combined_all.filter_file(PurePath("baz.txt"))
+
+    combined_any = mamba_press.filter.CombinedFilesFilter([filter1, filter2], all=False)
+    assert combined_any.filter_file(PurePath("lib/python/bar.py"))
+    assert combined_any.filter_file(PurePath("lib/bar.so"))
+    assert not combined_any.filter_file(PurePath("baz.txt"))

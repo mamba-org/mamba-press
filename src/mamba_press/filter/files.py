@@ -2,9 +2,11 @@ import dataclasses
 import fnmatch
 import pathlib
 
+from .protocol import FilesFilter
 
-@dataclasses.dataclass(frozen=True)
-class UnixFilesFilter:
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class UnixFilesFilter(FilesFilter):
     """Filter files from the wheel.
 
     The patterns are applied individually to every file path (as a relative to the prefix root).
@@ -18,3 +20,21 @@ class UnixFilesFilter:
     def filter_file(self, path: pathlib.PurePath) -> bool:
         """Whether the file should be kept i.e. not filtered out."""
         return any(fnmatch.fnmatch(str(path), pat) for pat in self.patterns) != self.exclude
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class CombinedFilesFilter(FilesFilter):
+    """Combine multiple file filters into one.
+
+    If ``all`` is true, then a file is kept if it is kept by all filters.
+    Otherwise, a file is kept if it is kept by any filter.
+    """
+
+    filters: list[FilesFilter]
+    all: bool = True
+
+    def filter_file(self, path: pathlib.PurePath) -> bool:
+        """Whether the file should be kept i.e. not filtered out."""
+        if self.all:
+            return all(f.filter_file(path) for f in self.filters)
+        return any(f.filter_file(path) for f in self.filters)
