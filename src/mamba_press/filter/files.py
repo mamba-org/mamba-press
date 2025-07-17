@@ -45,7 +45,7 @@ class CombinedFilesFilter(FilesFilter):
 class ManyLinuxWhitelist(FilesFilter):
     """Whitelist library allowed by manylinux spec."""
 
-    def __init__(self, platform: str) -> None:
+    def __init__(self, platform: str, keep: bool = True) -> None:
         import auditwheel.policy
 
         split = mamba_press.platform.WheelPlatformSplit.parse(platform)
@@ -53,7 +53,8 @@ class ManyLinuxWhitelist(FilesFilter):
             libc=auditwheel.libc.Libc.GLIBC,  # Always on conda-forge
             arch=getattr(auditwheel.architecture.Architecture, split.arch),
         ).get_policy_by_name(platform)
+        self.keep = keep  # TODO would be nicer to have not/and/or operators on filters
 
     def filter_file(self, path: pathlib.PurePath) -> bool:
         """Filter libraries using autiwheel policies."""
-        return path.name in self.policy.whitelist
+        return (path.name in self.policy.whitelist) == self.keep

@@ -38,6 +38,8 @@ def make_solution_filters(requested_packages: list[mamba.specs.MatchSpec]) -> li
 
 def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
     """Return default filters on files."""
+    # We would want to filter Manylinux whitelisted libraries but the libstdc++ on
+    # conda-forge is too recent to even match a manylinux tag.
     return [
         mamba_press.filter.UnixFilesFilter(
             [

@@ -226,18 +226,23 @@ def create_working_wheel(
                 continue
             with open(abs_src, "rb") as f:
                 bin = relocator.parse_binary(f.read())
-                relocator.relocate_binary(
-                    bin=bin,
-                    data_path=abs_src,
-                    prefix_path=working_artifacts.working_env_path,
-                    path_transform=__make_path_transform(working_artifacts.working_env_path, path_transforms),
-                )
             # A previous version was modifying the library name (soname, id) and dynamic loading
             # but resulted in invalid binaries.
             # Instead, we leave the all names unchanged and set the file name to the library name.
             # This is less flexible and more error-prone, but works for now.
             if (name := relocator.lib_name(bin)) is not None:
                 abs_dest = abs_dest.with_name(name)
+                # Need to check again since the name changed
+                if any(not filter.filter_file(rel_src.with_name(name)) for filter in files_filters):
+                    __logger__.debug(f'Filtering out file "{rel_src}"')
+                    continue
+
+            relocator.relocate_binary(
+                bin=bin,
+                data_path=abs_src,
+                prefix_path=working_artifacts.working_env_path,
+                path_transform=__make_path_transform(working_artifacts.working_env_path, path_transforms),
+            )
             relocator.write_binary(bin, abs_dest)
 
         else:
