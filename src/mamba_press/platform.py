@@ -29,6 +29,16 @@ def platform_wheel_to_conda(os: str, arch: str) -> mamba.specs.KnownPlatform | N
     return PLATFORM_WHEEL_TO_CONDA.get((os, arch), None)
 
 
+def platform_wheel_is_macos(tag: str) -> bool:
+    """Return true is the wheel platform is MacOS."""
+    return tag.lower().startswith("macosx")
+
+
+def platform_wheel_is_manylinux(tag: str) -> bool:
+    """Return true is the wheel platform is manylinux."""
+    return tag.lower().startswith("manylinux")
+
+
 def platform_wheel_requirements(tag: str) -> tuple[mamba.specs.KnownPlatform, list[mamba.specs.PackageInfo]]:
     """Convert a wheel platform tag to a Conda platform."""
     match = PLATFORM_WHEEL_RE.fullmatch(tag)

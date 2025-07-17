@@ -191,6 +191,7 @@ def __make_path_transform(
 
 
 def create_working_wheel(
+    execution_params: ExecutionParams,
     working_artifacts: WorkingArtifacts,
     files_filters: list[FilesFilter],
     path_transforms: list[PathTransform],
@@ -212,7 +213,7 @@ def create_working_wheel(
     # TODO: Could we use a general enough DataTransform Protocol?
     # This is why the relocator was made into a class even though it does not have any
     # instance data.
-    relocator = mamba_press.transform.dynlib.relocation.DynamicLibRelocate()
+    relocator = mamba_press.transform.dynlib.relocation.make_relocator(execution_params.platform)
     for rel_src, rel_dest in files.items():
         abs_src = working_artifacts.working_env_path / rel_src
         abs_dest = working_artifacts.working_wheel_path / rel_dest
@@ -227,7 +228,7 @@ def create_working_wheel(
             with open(abs_src, "rb") as f:
                 bin = relocator.parse_binary(f.read())
                 relocator.relocate_binary(
-                    bin=bin,
+                    bin=bin,  # type: ignore
                     data_path=abs_src,
                     prefix_path=working_artifacts.working_env_path,
                     path_transform=__make_path_transform(working_artifacts.working_env_path, path_transforms),
@@ -236,9 +237,9 @@ def create_working_wheel(
             # but resulted in invalid binaries.
             # Instead, we leave the all names unchanged and set the file name to the library name.
             # This is less flexible and more error-prone, but works for now.
-            if (name := relocator.lib_name(bin)) is not None:
+            if (name := relocator.lib_name(bin)) is not None:  # type: ignore
                 abs_dest = abs_dest.with_name(name)
-            relocator.write_binary(bin, abs_dest)
+            relocator.write_binary(bin, abs_dest)  # type: ignore
 
         else:
             os.link(abs_src, abs_dest)

@@ -7,6 +7,7 @@ from typing import Callable, Final, Iterable, cast
 import lief
 
 from . import utils
+from .abc import DynamicLibRelocate
 
 __logger__ = logging.getLogger(__name__)
 
@@ -138,3 +139,35 @@ def relocate_bin(
             bin.add(cast(lief.MachO.LoadCommand, lief.MachO.RPathCommand.create(new_rpath)))
             added_rpaths.append(new_rpath)
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
+
+
+class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
+    """Relocate Mach-O dynamic libraries RPATHs."""
+
+    @classmethod
+    def binary_type(self) -> type[lief.MachO.Binary]:
+        """Return the type of the binary."""
+        return lief.MachO.Binary
+
+    def _needed(self, data: str | list[int]) -> bool:
+        return lief.is_macho(data)
+
+    def lib_name(self, bin: lief.MachO.Binary) -> str | None:
+        """Return the filename in the Mach-O library id."""
+        return lib_name(bin)
+
+    def relocate_binary(
+        self,
+        bin: lief.MachO.Binary,
+        data_path: pathlib.Path,
+        prefix_path: pathlib.Path,
+        path_transform: Callable[[pathlib.Path], pathlib.Path],
+    ) -> None:
+        """Transform the data inside the file."""
+        __logger__.debug(f'Relocating Mach-O "{data_path}"')
+        relocate_bin(
+            bin=bin,
+            bin_path=data_path,
+            prefix_path=prefix_path,
+            path_transform=path_transform,
+        )

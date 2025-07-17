@@ -102,6 +102,7 @@ def main(
     path_transforms = make_path_transforms(context)
 
     mamba_press.execution.create_working_wheel(
+        execution_params=execution_params,
         working_artifacts=working_artifacts,
         files_filters=files_filters,
         path_transforms=path_transforms,
