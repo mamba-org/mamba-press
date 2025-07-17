@@ -69,15 +69,17 @@ typos = ">=1.31.2,<2"
 [tool.pixi.feature.test.tasks]
 # Formatters
 fmt-ruff = "ruff format"
-fmt-taplo = "taplo fmt"
+fmt-taplo = "taplo format"
 fmt = [{ task = "fmt-ruff" }, { task = "fmt-taplo" }]
 # Checkers
 check-ruff-format = "ruff format --check"
+check-taplo-format = "taplo check"
 check-ruff = "ruff check"
 check-mypy = "python -m mypy src/ test/"
 check-typos = "typos --write-changes"
 check = [
   { task = "check-ruff-format" },
+  { task = "check-taplo-format" },
   { task = "check-ruff" },
   { task = "check-mypy" },
   { task = "check-typos" },
@@ -85,6 +87,8 @@ check = [
 # Tests
 test-pytest = "python -m pytest"
 test = { depends-on = ["test-pytest"] }
+# All
+ci = { depends-on = ["check", "test"] }
 
 [tool.pixi.feature.dev.dependencies]
 jupyter = ">=1.0.0,<1.1"
