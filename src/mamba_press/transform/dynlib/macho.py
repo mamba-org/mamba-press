@@ -1,32 +1,17 @@
+import dataclasses
 import logging
 import os
 import pathlib
-import re
-from typing import Callable, Final, Iterable, cast
+from typing import Callable, Iterable, cast
 
 import lief
+
+from mamba_press.filter.protocol import FilesFilter
 
 from . import utils
 from .abc import DynamicLibRelocate
 
 __logger__ = logging.getLogger(__name__)
-
-MACOS_DYLIB_WHITELIST: Final = [
-    # https://github.com/conda/conda-build/blob/main/conda_build/post.py
-    re.compile(r"/opt/X11/.*\.dylib"),
-    re.compile(r"/usr/lib/libcrypto\.0\.9\.8\.dylib"),
-    re.compile(r"/usr/lib/libobjc\.A\.dylib"),
-    re.compile(r"/System/Library/Frameworks/.*\.framework/"),
-    re.compile(r"/usr/lib/libSystem\.B\.dylib"),
-    # Common low-level DSO whitelist from
-    re.compile(r"/usr/lib/libc\+\+abi\.dylib"),
-    re.compile(r"/usr/lib/libresolv.*\.dylib"),
-]
-
-
-def lib_is_whitelisted(lib: str) -> bool:
-    """Check if a shared library is expected on the system."""
-    return any(system_lib.match(lib) is not None for system_lib in MACOS_DYLIB_WHITELIST)
 
 
 def normalize_load_path(path: str, origin: str, rpaths: list[pathlib.Path]) -> list[pathlib.Path]:
@@ -91,6 +76,7 @@ def relocate_bin(
     bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
+    library_whitelist: FilesFilter,
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
     bin_path_relative = bin_path.relative_to(prefix_path)
@@ -112,7 +98,7 @@ def relocate_bin(
     for cmd in load_commands(bin):
         cmd_name = cmd.name
         # Note that some whitelisted libs don't exist but are embedded in the linker
-        if lib_is_whitelisted(cmd_name):
+        if library_whitelist.filter_file(pathlib.PurePath(cmd_name)):
             __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {cmd.name}")
             continue
 
@@ -141,8 +127,11 @@ def relocate_bin(
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
 
 
+@dataclasses.dataclass
 class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
     """Relocate Mach-O dynamic libraries RPATHs."""
+
+    library_whitelist: FilesFilter
 
     @classmethod
     def binary_type(self) -> type[lief.MachO.Binary]:
@@ -170,4 +159,5 @@ class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
             bin_path=data_path,
             prefix_path=prefix_path,
             path_transform=path_transform,
+            library_whitelist=self.library_whitelist,
         )

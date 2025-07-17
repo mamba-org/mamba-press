@@ -8,9 +8,11 @@ import typing
 from collections.abc import Iterable, Mapping
 
 import libmambapy as mamba
+import lief
 
-import mamba_press
+import mamba_press.filter
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 
 INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
@@ -75,6 +77,33 @@ def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
     ]
 
 
+def make_relocator(
+    platform: str,
+) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
+    """Create platform specific DynamicLibRelocate."""
+    if mamba_press.platform.platform_wheel_is_macos(platform):
+        return mamba_press.transform.dynlib.MachODynamicLibRelocate(
+            mamba_press.filter.UnixFilesFilter(
+                [
+                    # https://github.com/conda/conda-build/blob/main/conda_build/post.py
+                    "/opt/X11/*.dylib",
+                    "/usr/lib/libcrypto.0.9.8.dylib",
+                    "/usr/lib/libobjc.A.dylib",
+                    "/System/Library/Frameworks/*.framework/*",
+                    "/usr/lib/libSystem.B.dylib",
+                    # Common low-level DSO whitelist from
+                    "/usr/lib/libc++abi.dylib",
+                    "/usr/lib/libresolv*.dylib",
+                ],
+                exclude=False,
+            )
+        )
+    if mamba_press.platform.platform_wheel_is_manylinux(platform):
+        return mamba_press.transform.dynlib.ElfDynamicLibRelocate()
+
+    raise ValueError(f'Invalid or unsupported platform "{platform}"')
+
+
 def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
     """Read all the files in the environment."""
     for p in path.glob("**/*"):
@@ -102,10 +131,10 @@ def main(
     path_transforms = make_path_transforms(context)
 
     mamba_press.execution.create_working_wheel(
-        execution_params=execution_params,
         working_artifacts=working_artifacts,
         files_filters=files_filters,
         path_transforms=path_transforms,
+        relocator=make_relocator(execution_params.platform),  # type: ignore[misc]
     )
 
 

@@ -3,11 +3,6 @@ import pathlib
 import mamba_press.transform.dynlib.macho as macho
 
 
-def test_lib_is_whitelisted() -> None:
-    """System libraries are whitelisted."""
-    assert macho.lib_is_whitelisted("/usr/lib/libSystem.B.dylib")
-
-
 def test_normalize_load_path() -> None:
     """Load paths are properly resolved."""
     assert macho.normalize_load_path(path="/usr/lib/libfoo.dylib", origin="/origin", rpaths=[]) == [
