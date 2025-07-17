@@ -31,6 +31,9 @@ ignore = [
 
 [tool.mypy]
 strict = true
+[[tool.mypy.overrides]]
+module = ["auditwheel.*"]
+follow_untyped_imports = true
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -46,6 +49,8 @@ libmambapy = ">=2.3.0"
 # py-lief = ">=0.16.6"
 
 [tool.pixi.pypi-dependencies]
+# __linux dependencies in conda-forge
+auditwheel = "*"
 lief = { index = "https://lief.s3-website.fr-par.scw.cloud/latest", version = ">=0.17.0.dev0" }
 mamba_press = { path = ".", editable = true }
 

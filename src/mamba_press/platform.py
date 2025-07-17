@@ -1,3 +1,4 @@
+import dataclasses
 import re
 import sys
 from typing import Final
@@ -15,6 +16,25 @@ PLATFORM_WHEEL_TO_CONDA: Final = {
     ("manylinux", "x86_64"): mamba.specs.KnownPlatform.linux_64,
     ("manylinux", "aarch64"): mamba.specs.KnownPlatform.linux_aarch64,
 }
+
+
+@dataclasses.dataclass(slots=True)
+class WheelPlatformSplit:
+    """Components of a wheel platform tag."""
+
+    os: str
+    major: str
+    minor: str
+    arch: str
+
+    @staticmethod
+    def parse(platform: str) -> "WheelPlatformSplit":
+        """Split a wheel platform tag."""
+        match = PLATFORM_WHEEL_RE.fullmatch(platform)
+        if match is None:
+            raise ValueError(f'Unknown platform tag "{platform}"')
+
+        return WheelPlatformSplit(**{k: v.lower() for k, v in match.groupdict().items()})
 
 
 def platform_conda_string(platform: mamba.specs.KnownPlatform) -> str:
@@ -41,23 +61,14 @@ def platform_wheel_is_manylinux(tag: str) -> bool:
 
 def platform_wheel_requirements(tag: str) -> tuple[mamba.specs.KnownPlatform, list[mamba.specs.PackageInfo]]:
     """Convert a wheel platform tag to a Conda platform."""
-    match = PLATFORM_WHEEL_RE.fullmatch(tag)
-    if match is None:
-        raise ValueError(f'Unknown platform tag "{tag}"')
-
-    info = match.groupdict()
-    os = info["os"].lower()
-    minor = info["minor"].lower()
-    major = info["major"].lower()
-    arch = info["arch"].lower()
-
-    platform = platform_wheel_to_conda(os=os, arch=arch)
-    packages_func = getattr(sys.modules[__name__], f"{os}_{arch}_virtual_packages", None)
+    split = WheelPlatformSplit.parse(tag)
+    platform = platform_wheel_to_conda(os=split.os, arch=split.arch)
+    packages_func = getattr(sys.modules[__name__], f"{split.os}_{split.arch}_virtual_packages", None)
 
     if platform is None or packages_func is None:
-        raise NotImplementedError(f'Missing implementation for "{os}_{arch}"')
+        raise NotImplementedError(f'Missing implementation for "{split.os}_{split.arch}"')
 
-    packages: list[mamba.specs.PackageInfo] = packages_func(f"{major}.{minor}")
+    packages: list[mamba.specs.PackageInfo] = packages_func(f"{split.major}.{split.minor}")
     return platform, packages
 
 

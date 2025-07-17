@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 import libmambapy as mamba
 import lief
 
-import mamba_press.filter
+import mamba_press
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
@@ -77,6 +77,23 @@ def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
     ]
 
 
+class ManyLinuxWhitelist(FilesFilter):
+    """Whitelist library allowed by manylinux spec."""
+
+    def __init__(self, platform: str) -> None:
+        import auditwheel.policy
+
+        split = mamba_press.platform.WheelPlatformSplit.parse(platform)
+        self.policy = auditwheel.policy.WheelPolicies(
+            libc=auditwheel.libc.Libc.GLIBC,  # Always on conda-forge
+            arch=getattr(auditwheel.architecture.Architecture, split.arch),
+        ).get_policy_by_name(platform)
+
+    def filter_file(self, path: pathlib.PurePath) -> bool:
+        """Filter libraries using autiwheel policies."""
+        return path.name in self.policy.whitelist
+
+
 def make_relocator(
     platform: str,
 ) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
@@ -99,7 +116,7 @@ def make_relocator(
             )
         )
     if mamba_press.platform.platform_wheel_is_manylinux(platform):
-        return mamba_press.transform.dynlib.ElfDynamicLibRelocate()
+        return mamba_press.transform.dynlib.ElfDynamicLibRelocate(ManyLinuxWhitelist(platform))
 
     raise ValueError(f'Invalid or unsupported platform "{platform}"')
 

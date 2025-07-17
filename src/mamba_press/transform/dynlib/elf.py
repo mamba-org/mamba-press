@@ -1,9 +1,12 @@
+import dataclasses
 import logging
 import os
 import pathlib
 from typing import Callable
 
 import lief
+
+from mamba_press.filter.protocol import FilesFilter
 
 from . import utils
 from .abc import DynamicLibRelocate
@@ -55,6 +58,7 @@ def relocate_bin(
     bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
+    library_whitelist: FilesFilter,
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
     bin_path_relative = bin_path.relative_to(prefix_path)
@@ -76,6 +80,10 @@ def relocate_bin(
     added_rpaths: list[str] = []
     for dep in dynamic_libraries(bin):
         dep_name = str(dep.name)
+
+        if library_whitelist.filter_file(pathlib.PurePath(dep_name)):
+            __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {dep_name}")
+            continue
 
         # Find where the dependency is pointing to
         dep_path = resolve_dynamic_library(dep_name, rpaths=resolved_rpaths)
@@ -103,8 +111,11 @@ def relocate_bin(
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
 
 
+@dataclasses.dataclass
 class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary]):
     """Relocate Mach-O dynamic libraries RPATHs."""
+
+    library_whitelist: FilesFilter
 
     @classmethod
     def binary_type(self) -> type[lief.ELF.Binary]:
@@ -132,4 +143,5 @@ class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary]):
             bin_path=data_path,
             prefix_path=prefix_path,
             path_transform=path_transform,
+            library_whitelist=self.library_whitelist,
         )
