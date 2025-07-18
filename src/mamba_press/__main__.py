@@ -58,6 +58,7 @@ def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
                 "*.a",
                 "*.pyc",
                 "*/__pycache__/*",
+                interpolate("${{ site_packages }}/*.dist-info/RECORD", context),
                 interpolate("${{ site_packages }}/*.dist-info/INSTALLER", context),
                 interpolate("${{ site_packages }}/*.dist-info/REQUESTED", context),
             ],
@@ -153,6 +154,11 @@ def main(
         files_filters=files_filters,
         path_transforms=path_transforms,
         relocator=make_relocator(execution_params.platform),  # type: ignore[misc]
+    )
+
+    mamba_press.execution.pack_wheel(
+        execution_params=execution_params,
+        working_artifacts=working_artifacts,
     )
 
 

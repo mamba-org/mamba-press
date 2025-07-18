@@ -8,9 +8,11 @@ import tempfile
 from typing import Annotated, Callable, Iterable
 
 import libmambapy as mamba
+import wheel.wheelfile
 
 import mamba_press.packages
 import mamba_press.solution_utils
+import mamba_press.wheel
 from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate
@@ -147,9 +149,7 @@ class WorkingArtifacts:
     def working_wheel_dist_info_path(self) -> pathlib.Path:
         """The path to the .dist-info directory in the working wheel folder, if unique."""
         candidates = [
-            p
-            for p in (self.working_env_path / self.site_packages).iterdir()
-            if not p.name.endswith(".dist-info")
+            p for p in (self.working_env_path / self.site_packages).iterdir() if p.name.endswith(".dist-info")
         ]
 
         if len(candidates) != 1:
@@ -162,7 +162,18 @@ class WorkingArtifacts:
     @property
     def unique_package_name(self) -> str:
         """Return the name of the python package, if unique."""
-        return self.working_wheel_dist_info_path.name
+        candidates = [
+            p
+            for p in (self.working_env_path / self.site_packages).iterdir()
+            if not p.name.endswith(".dist-info")
+        ]
+
+        if len(candidates) != 1:
+            count = "no" if len(candidates) == 0 else "multiple"
+            pkgs = '", "'.join(str(c) for c in candidates)
+            raise ValueError(f'Found {count} python packages: "{pkgs}"')
+
+        return candidates[0].name
 
 
 def create_working_env(
@@ -296,3 +307,31 @@ def create_working_wheel(
 
         else:
             os.link(abs_src, abs_dest)
+
+
+def pack_wheel(
+    execution_params: ExecutionParams,
+    working_artifacts: WorkingArtifacts,
+) -> pathlib.Path:
+    """Create the wheel archive."""
+    dist_info_path = working_artifacts.working_wheel_dist_info_path
+
+    with open(dist_info_path / "METADATA") as f:
+        metadata = mamba_press.wheel.Metadata.read(f)
+    with open(wheeldata_path := dist_info_path / "WHEEL") as f:
+        wheeldata = mamba_press.wheel.Wheel.read(f)
+
+    if len(wheeldata.tag) != 1:
+        raise ValueError(f'Expected only one tag in "{wheeldata_path}"')
+
+    wheel_filename = f"{metadata.name}-{metadata.version}-{wheeldata.tag[0]}.whl"
+    wheel_path = execution_params.out_dir / wheel_filename
+
+    wheel_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # This utility will recreate the RECORD in the dist-info folder
+    with wheel.wheelfile.WheelFile(wheel_path, "w") as wf:
+        __logger__.info(f"Packing wheel in {wheel_path}")
+        wf.write_files(str(working_artifacts.working_wheel_path))
+
+    return wheel_path

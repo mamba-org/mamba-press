@@ -57,7 +57,7 @@ There are current limitations to this project:
   - [ ] Right now the manylinux tag passed is not the same as the one suggested by ``auditwheel``
     due to ``policy.symbol_versions`` not being inspected.
   - [ ] The ``METADATA`` file is outdated.
-  - [ ] The ``RECORD`` file is outdated.
+  - [x] The ``RECORD`` file is outdated.
 - [ ] Let user configure the file filters and transform via a config file.
 - [ ] Let user specify an external lib soname + ``RPATH`` for finding a lib in an external package.
 - [ ] Add Conda Python packages dependencies as PyPI dependencies in wheel (though they could

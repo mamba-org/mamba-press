@@ -34,6 +34,9 @@ strict = true
 [[tool.mypy.overrides]]
 module = ["auditwheel.*"]
 follow_untyped_imports = true
+[[tool.mypy.overrides]]
+module = ["wheel.*"]
+follow_untyped_imports = true
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -46,6 +49,7 @@ dev = { features = ["dev", "test"], solve-group = "default" }
 [tool.pixi.dependencies]
 python = ">=3.12.3"
 libmambapy = ">=2.3.0"
+wheel = ">=0.45.1"
 # py-lief = ">=0.16.6"
 
 [tool.pixi.pypi-dependencies]

@@ -97,6 +97,8 @@ class Metadata:
         maintainer: Maintainer name
         maintainer_email: Maintainer email address
         license: License for the package
+        license_file: Path to the license of the package
+        keywords: List of package keywords
         classifier: List of trove classifiers
         platform: List of platforms supported by the package
         supported_platform: List of supported platforms with more detail
@@ -124,7 +126,9 @@ class Metadata:
     maintainer: str | None = None
     maintainer_email: str | None = None
     license: str | None = None
+    license_file: str | None = None
     requires_python: str | None = None
+    keywords: list[str] = dataclasses.field(default_factory=list)
     classifier: list[str] = dataclasses.field(default_factory=list)
     platform: list[str] = dataclasses.field(default_factory=list)
     supported_platform: list[str] = dataclasses.field(default_factory=list)
@@ -170,6 +174,7 @@ class Metadata:
                 # Multi-value fields
                 if key in [
                     "classifier",
+                    "keywords",
                     "platform",
                     "supported_platform",
                     "requires_dist",
@@ -180,9 +185,7 @@ class Metadata:
                     "provides_extra",
                     "dynamic",
                 ]:
-                    if key not in list_data:
-                        list_data[key] = []
-                    list_data[key].append(value)
+                    list_data.setdefault(key, []).append(value)
                 elif key == "description" and not value:
                     # Empty description value means multi-line description follows
                     in_description = True
@@ -220,6 +223,7 @@ class Metadata:
             ("maintainer", "Maintainer"),
             ("maintainer_email", "Maintainer-email"),
             ("license", "License"),
+            ("license_file", "License-File"),
             ("requires_python", "Requires-Python"),
             ("description_content_type", "Description-Content-Type"),
         ]
@@ -234,6 +238,7 @@ class Metadata:
         # Multi-value fields (only write if list is not empty)
         multi_fields = [
             ("classifier", "Classifier"),
+            ("keywords", "Keywords"),
             ("platform", "Platform"),
             ("supported_platform", "Supported-Platform"),
             ("requires_dist", "Requires-Dist"),
