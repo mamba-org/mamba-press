@@ -222,13 +222,3 @@ def create_wheel_environment(
         channel_context,
         prefix,
     )
-
-
-def find_package_in_solution_installs(
-    solution: mamba.solver.Solution, ms: mamba.specs.MatchSpec
-) -> mamba.specs.PackageInfo | None:
-    """Find a package to install from a MatchSpec."""
-    for p in solution.to_install():
-        if ms.contains_except_channel(p):
-            return p
-    return None

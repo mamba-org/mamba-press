@@ -10,6 +10,7 @@ from typing import Annotated, Callable, Iterable
 import libmambapy as mamba
 
 import mamba_press.packages
+import mamba_press.solution_utils
 from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate
@@ -123,7 +124,7 @@ def create_working_env(
         database=database,
     )
 
-    python = mamba_press.packages.find_package_in_solution_installs(
+    python = mamba_press.solution_utils.find_package_in_solution_installs(
         solution, mamba.specs.MatchSpec.parse("python")
     )
     if python is None:
