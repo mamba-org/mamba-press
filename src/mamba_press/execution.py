@@ -34,8 +34,84 @@ class ExecutionParams:
     ]
 
     working_dir: Annotated[
-        pathlib.Path | None, Configurable(description="Where working environment is created")
+        pathlib.Path | None,
+        Configurable(description="Where working environment is created"),
     ] = None
+
+    out_dir: Annotated[
+        pathlib.Path,
+        Configurable(description="Where final wheels will be saved"),
+    ] = pathlib.Path("dist/")
+
+
+# TODO must be a full class
+@dataclasses.dataclass(frozen=True)
+class PackagesData:
+    """The objects to describe the Conda packages that where needed, available, and chosen."""
+
+    database: mamba.solver.libsolv.Database
+    request: mamba.solver.Request
+    full_solution: mamba.solver.Solution
+    filtered_solution: mamba.solver.Solution
+
+    @functools.cached_property
+    def python(self) -> mamba.specs.PackageInfo | None:
+        """Return the Python package matching the required packages."""
+        return mamba_press.solution_utils.find_package_in_solution_installs(
+            self.full_solution, mamba.specs.MatchSpec.parse("python")
+        )
+
+
+def compute_solution(
+    execution_params: ExecutionParams,
+    channel_params: mamba_press.packages.ChannelParams,
+    cache_params: mamba_press.packages.CacheParams,
+    solution_filters: list[SolutionFilter],
+) -> tuple[PackagesData, mamba.MultiPackageCache, mamba.specs.ChannelResolveParams]:
+    """Download the packages index and compute the packages required."""
+    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(execution_params.platform)
+
+    channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params, platform)
+    channels = mamba_press.packages.make_channels(
+        channels=channel_params.channels,
+        channel_resolve_params=channel_resolve_params,
+    )
+    caches = mamba_press.packages.make_package_cache(cache_params=cache_params)
+    subdir_indices = mamba_press.packages.make_subdir_index_loaders(
+        itertools.product(channels, [platform, mamba_press.packages.NOARCH_PLATFORM]),
+        caches=caches,
+    )
+
+    __logger__.info("Loading channel subdirectory indices")
+    mamba_press.packages.download_required_subdir_indices(subdir_indices)
+    database = mamba.solver.libsolv.Database(channel_resolve_params)
+    mamba_press.packages.load_subdirs_in_database(
+        database=database,
+        installed_packages=virtual_packages,
+        subdir_indices=subdir_indices,
+    )
+
+    __logger__.info("Solving package requirements")
+    request = mamba_press.packages.make_request(execution_params.packages)
+    solution = mamba_press.packages.solve_for_packages(
+        request=request,
+        database=database,
+    )
+
+    filtered_solution = functools.reduce(
+        lambda sol, filt: filt.filter_solution(sol),
+        solution_filters,
+        solution,
+    )
+
+    packages_data = PackagesData(
+        database=database,
+        request=request,
+        full_solution=solution,
+        filtered_solution=filtered_solution,
+    )
+
+    return packages_data, caches, channel_resolve_params
 
 
 @dataclasses.dataclass
@@ -68,26 +144,32 @@ class WorkingArtifacts:
         return pathlib.PurePath(mamba_press.platform.site_packages_dir(self.python))
 
     @property
-    def unique_package_name(self) -> str:
-        """The relative directory of the python package in the site-packages, if unique."""
+    def working_wheel_dist_info_path(self) -> pathlib.Path:
+        """The path to the .dist-info directory in the working wheel folder, if unique."""
         candidates = [
             p
             for p in (self.working_env_path / self.site_packages).iterdir()
-            if not p.name.endswith(".dist-info") or p.name.endswith(".egg-info")
+            if not p.name.endswith(".dist-info")
         ]
-        if len(candidates) != 1:
-            raise ValueError(
-                'Found multiple python packages: "{}"'.format('", "'.join(str(c) for c in candidates))
-            )
 
-        return candidates[0].name
+        if len(candidates) != 1:
+            count = "no" if len(candidates) == 0 else "multiple"
+            pkgs = '", "'.join(str(c) for c in candidates)
+            raise ValueError(f'Found {count} python packages: "{pkgs}"')
+
+        return candidates[0]
+
+    @property
+    def unique_package_name(self) -> str:
+        """Return the name of the python package, if unique."""
+        return self.working_wheel_dist_info_path.name
 
 
 def create_working_env(
     execution_params: ExecutionParams,
-    channel_params: mamba_press.packages.ChannelParams,
-    cache_params: mamba_press.packages.CacheParams,
-    solution_filters: list[SolutionFilter],
+    caches: mamba.MultiPackageCache,
+    channel_resolve_params: mamba.specs.ChannelResolveParams,
+    packages_data: PackagesData,
 ) -> WorkingArtifacts:
     """Create the working environment with packages filtered.
 
@@ -95,49 +177,15 @@ def create_working_env(
     a wheel.
     It is later refined into a working wheel folder by filtering and transforming the files.
     """
-    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(execution_params.platform)
-
-    channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params, platform)
-    channels = mamba_press.packages.make_channels(
-        channels=channel_params.channels,
-        channel_resolve_params=channel_resolve_params,
-    )
-    caches = mamba_press.packages.make_package_cache(cache_params=cache_params)
-    subdir_indices = mamba_press.packages.make_subdir_index_loaders(
-        itertools.product(channels, [platform, mamba_press.packages.NOARCH_PLATFORM]),
-        caches=caches,
-    )
-
-    __logger__.info("Loading channel subdirectory indices")
-    mamba_press.packages.download_required_subdir_indices(subdir_indices)
-    database = mamba.solver.libsolv.Database(channel_resolve_params)
-    mamba_press.packages.load_subdirs_in_database(
-        database=database,
-        installed_packages=virtual_packages,
-        subdir_indices=subdir_indices,
-    )
-
-    __logger__.info("Solving package requirements")
-    request = mamba_press.packages.make_request(execution_params.packages)
-    solution = mamba_press.packages.solve_for_packages(
-        request=request,
-        database=database,
-    )
-
-    python = mamba_press.solution_utils.find_package_in_solution_installs(
-        solution, mamba.specs.MatchSpec.parse("python")
-    )
-    if python is None:
-        raise RuntimeError("Could not detect python package")
-
-    for filter in solution_filters:
-        solution = filter.filter_solution(solution)
-
     working_dir: pathlib.Path | tempfile.TemporaryDirectory[str]
     if execution_params.working_dir is None:
         working_dir = tempfile.TemporaryDirectory(prefix="mamba-press")
     else:
         working_dir = execution_params.working_dir
+
+    python = packages_data.python
+    if python is None:
+        raise ValueError("No Python package found")
 
     artifacts = WorkingArtifacts(
         working_dir=working_dir,
@@ -146,9 +194,9 @@ def create_working_env(
 
     __logger__.info("Creating wheel environment")
     mamba_press.packages.create_wheel_environment(
-        database=database,
-        request=request,
-        solution=solution,
+        database=packages_data.database,
+        request=packages_data.request,
+        solution=packages_data.filtered_solution,
         caches=caches,
         target_prefix=artifacts.working_env_path,
         channel_resolve_params=channel_resolve_params,

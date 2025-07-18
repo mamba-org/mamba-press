@@ -130,11 +130,18 @@ def main(
     """Press Conda packages into wheels."""
     solution_filters = make_solution_filters(execution_params.packages)
 
-    working_artifacts = mamba_press.execution.create_working_env(
+    packages_data, caches, channel_resolve_params = mamba_press.execution.compute_solution(
         execution_params=execution_params,
         channel_params=channel_params,
         cache_params=cache_params,
         solution_filters=solution_filters,
+    )
+
+    working_artifacts = mamba_press.execution.create_working_env(
+        execution_params=execution_params,
+        caches=caches,
+        channel_resolve_params=channel_resolve_params,
+        packages_data=packages_data,
     )
 
     context = mamba_press.execution.create_interpolation_context(working_artifacts)
