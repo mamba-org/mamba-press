@@ -2,7 +2,7 @@
 
 import logging
 
-from . import config, execution, filter, packages, platform, transform
+from . import config, execution, filter, packages, platform, recipe, transform
 
 __all__ = [
     "config",
@@ -11,6 +11,7 @@ __all__ = [
     "filter",
     "packages",
     "platform",
+    "recipe",
     "transform",
 ]
 
