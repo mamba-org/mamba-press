@@ -1,7 +1,8 @@
 import dataclasses
 from typing import Annotated
 
-from mamba_press.config import Configurable, Default, ExplicitConfigurable
+from mamba_press.config import Configurable, ExplicitConfigurable
+from mamba_press.typing import Default
 
 
 def test_explicit_configurable_full() -> None:

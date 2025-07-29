@@ -1,19 +1,10 @@
 import dataclasses
-import enum
 import types
 import typing
 from collections.abc import Mapping
-from typing import Callable, Literal
+from typing import Callable
 
-
-class Sentinel(enum.Enum):
-    """Strongly typed constants."""
-
-    Default = enum.auto()
-
-
-DefaultType = Literal[Sentinel.Default]
-Default: DefaultType = Sentinel.Default
+from mamba_press.typing import Default, DefaultType
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
