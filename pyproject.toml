@@ -50,11 +50,10 @@ dev = { features = ["dev", "test"], solve-group = "default" }
 python = ">=3.12.3"
 libmambapy = ">=2.3.0"
 wheel = ">=0.45.1"
+auditwheel = "*"
 # py-lief = ">=0.16.6"
 
 [tool.pixi.pypi-dependencies]
-# __linux dependencies in conda-forge
-auditwheel = "*"
 lief = { index = "https://lief.s3-website.fr-par.scw.cloud/latest", version = ">=0.17.0.dev0" }
 mamba_press = { path = ".", editable = true }
 
