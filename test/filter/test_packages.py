@@ -1,6 +1,21 @@
+import unittest.mock as mock
+
 import libmambapy as mamba
 
 import mamba_press
+
+
+def test_package_filter_from_config() -> None:
+    """Can be created from a dictionary."""
+    filter = mamba_press.filter.PackagesFilter.from_config(
+        {"to_prune": ["foo>1"]},
+        source=mock.MagicMock(),
+    )
+
+    assert len(filter.to_prune) == 1
+    # Cheap comparison as MatchSpec does not have equality comparison
+    assert str(filter.to_prune[0]) == "foo>1"
+    assert filter.recursive
 
 
 def test_package_filter_pyarrow() -> None:
@@ -33,6 +48,19 @@ def test_package_filter_pyarrow() -> None:
     # Python and libarrow (indirect) dependencies
     for ms in common_deps + requested_packages:
         assert any(ms.contains_except_channel(p) for p in pruned.to_install())
+
+
+def test_python_filter_from_config() -> None:
+    """Can be created from a dictionary."""
+    filter = mamba_press.filter.PythonPackagesFilter.from_config(
+        {"python_packages": ["foo>1"], "recursive": False},
+        source=mock.MagicMock(),
+    )
+
+    assert len(filter.python_packages) == 1
+    # Cheap comparison as MatchSpec does not have equality comparison
+    assert str(filter.python_packages[0]) == "foo>1"
+    assert not filter.recursive
 
 
 def test_python_filter_pinocchio() -> None:

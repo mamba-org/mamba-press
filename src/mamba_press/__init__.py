@@ -2,7 +2,7 @@
 
 import logging
 
-from . import config, execution, filter, packages, platform, recipe, transform
+from . import config, execution, factory, filter, packages, platform, recipe, transform
 from .recipe import Recipe
 
 __all__ = [
@@ -10,6 +10,7 @@ __all__ = [
     "config",
     "execution",
     "execution",
+    "factory",
     "filter",
     "packages",
     "platform",

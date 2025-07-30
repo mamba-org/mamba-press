@@ -2,11 +2,14 @@ import dataclasses
 
 import libmambapy as mamba
 
+import mamba_press.recipe
 import mamba_press.solution_utils
+from mamba_press.filter.protocol import SolutionFilter
+from mamba_press.recipe import DynamicParams, Source
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PackagesFilter:
+class PackagesFilter(SolutionFilter):
     """Remove packages from the the final wheel.
 
     This is used for removing dependencies of a package that we know should not be part of the
@@ -21,6 +24,21 @@ class PackagesFilter:
     to_prune: list[mamba.specs.MatchSpec]
     recursive: bool = True
 
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source) -> "PackagesFilter":
+        """Construct from simple parameters typically found in configurations."""
+        to_prune = [
+            mamba.specs.MatchSpec.parse(ms)
+            for ms in mamba_press.recipe.get_param_as("to_prune", params=params, type_=list)
+        ]
+        params.pop("to_prune")
+
+        return PackagesFilter(
+            requested_packages=source.packages,
+            to_prune=to_prune,
+            **params,  # type: ignore[arg-type]
+        )
+
     def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
         """Filter packages from solution packages to install."""
         return mamba_press.solution_utils.prune_packages_from_solution_installs(
@@ -32,11 +50,11 @@ class PackagesFilter:
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PythonPackagesFilter:
+class PythonPackagesFilter(SolutionFilter):
     """Remove Python and all Python packages except the ones requested."""
 
     requested_packages: list[mamba.specs.MatchSpec]
-    python_package: list[mamba.specs.MatchSpec] = dataclasses.field(
+    python_packages: list[mamba.specs.MatchSpec] = dataclasses.field(
         default_factory=lambda: [
             mamba.specs.MatchSpec.parse("python"),
             mamba.specs.MatchSpec.parse("python_abi"),
@@ -44,11 +62,19 @@ class PythonPackagesFilter:
     )
     recursive: bool = True
 
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source) -> "PythonPackagesFilter":
+        """Construct from simple parameters typically found in configurations."""
+        return PythonPackagesFilter(
+            requested_packages=source.packages,
+            **params,  # type: ignore[arg-type]
+        )
+
     def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
         """Filter packages from solution packages to install."""
         return mamba_press.solution_utils.prune_packages_from_solution_installs(
             solution=solution,
-            to_prune=self.python_package,
-            to_prune_if_depending_on=self.python_package,
+            to_prune=self.python_packages,
+            to_prune_if_depending_on=self.python_packages,
             requested_packages=self.requested_packages,
         )

@@ -7,11 +7,10 @@ import re
 import typing
 from collections.abc import Iterable, Mapping
 
-import libmambapy as mamba
 import lief
 
 import mamba_press
-from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.filter.protocol import FilesFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
@@ -22,19 +21,6 @@ INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
 def interpolate(template: str, context: Mapping[str, object]) -> str:
     """Replace variables with a simple JinJa-like syntax."""
     return INTERPOLATE_VAR_PATTERN.sub(lambda m: str(context.get(m.group(1), "")), template)
-
-
-def make_solution_filters(requested_packages: list[mamba.specs.MatchSpec]) -> list[SolutionFilter]:
-    """Return default filters on solution."""
-    return [
-        mamba_press.filter.PackagesFilter(
-            to_prune=[
-                mamba.specs.MatchSpec.parse("python"),
-                mamba.specs.MatchSpec.parse("python_abi"),
-            ],
-            requested_packages=requested_packages,
-        )
-    ]
 
 
 def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
@@ -145,7 +131,7 @@ def main(
     """Press Conda packages into wheels."""
     wheel_split = make_wheel_split(recipe.target.platform)
 
-    solution_filters = make_solution_filters(recipe.source.packages)
+    solution_filters = mamba_press.factory.make_solution_filters(recipe)
 
     packages_data, caches, channel_resolve_params = mamba_press.execution.compute_solution(
         execution_params=execution_params,

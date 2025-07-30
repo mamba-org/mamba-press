@@ -1,0 +1,69 @@
+import importlib
+import re
+from typing import Final
+
+import mamba_press.filter
+from mamba_press.filter.protocol import SolutionFilter
+from mamba_press.recipe import NamedDynamicEntry, Recipe
+from mamba_press.typing import Default
+
+KEBAB_CASE_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b[a-z]+(?:-[a-z]+)*\b")
+
+
+def kebab_to_pascal(text: str) -> str:
+    """Transform kebab-case to PascalCase."""
+
+    def replacer(match: re.Match[str]) -> str:
+        parts = match.group().split("-")
+        return "".join(part.capitalize() for part in parts)
+
+    return KEBAB_CASE_PATTERN.sub(replacer, text)
+
+
+def make_plugin(  # type: ignore
+    entry: NamedDynamicEntry,
+    module_name: str,
+    **kwargs,
+) -> object:
+    """Import and instantiate a plugin."""
+    if len(entry) != 1:
+        raise ValueError("Plugin entries must use a single top level name.")
+
+    name, params = entry.popitem()
+    # A mamba_press standard filter
+    if name.count(".") == 0:
+        class_name = kebab_to_pascal(name)
+    # A plugin filter
+    else:
+        class_name = name.rsplit(".", 1)[-1]
+        module_name = ".".join(name.split(".")[:-1])
+
+    module = importlib.import_module(module_name)
+    class_ = getattr(module, class_name, None)
+    if class_ is None:
+        raise ValueError(f"No plugin named {class_name}")
+
+    return class_.from_config(params, **kwargs)
+
+
+def make_solution_filters(recipe: Recipe) -> list[SolutionFilter]:
+    """Import and instantiate required solution filters."""
+    packages = ["python", "python_abi"]
+
+    if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
+        packages = mamba_press.recipe.get_param_as(
+            "packages",
+            params=recipe.build.filter.packages,  # type: ignore[arg-type]
+            type_=list[str],
+        )
+
+    plugin = make_plugin(
+        {
+            "PackagesFilter": {
+                "to_prune": packages,  # type: ignore[dict-item]
+            }
+        },
+        module_name="mamba_press.filter",
+        source=recipe.source,
+    )
+    return [plugin]  # type: ignore[list-item]

@@ -17,6 +17,19 @@ DynamicParams: TypeAlias = dict[str, DynamicEntry]
 NamedDynamicEntry: TypeAlias = dict[str, DynamicParams]
 
 
+def get_param_as[T](key: str, params: DynamicParams, type_: type[T], default: DefaultType | T = Default) -> T:
+    """Return the parameter in the correct type of raise an exception."""
+    if key not in params:
+        if default != Default:
+            return default
+        raise ValueError(f"Key {key} not provided")
+
+    if isinstance((value := params[key]), type_):
+        return value
+
+    raise ValueError(f"A {type(value).__name__} was given for key {key} but expected {type_.__name__}")
+
+
 @dataclasses.dataclass
 class Source:
     """Specify what Conda packages to get."""
@@ -82,11 +95,11 @@ class Transform:
     Attributes not provided will be defaulted, if explicitly marked as such.
 
     Attributes:
-        path: List of dynamic dispatched mamba_press.filter.FilesFilter
+        path: List of dynamic dispatched mamba_press.transform.PathTransform
 
     """
 
-    path: list[str] | DefaultType = Default  # FIXME
+    path: list[NamedDynamicEntry] | DefaultType = Default  # FIXME
     dynlib: DefaultType | None = Default  # No args so far
     # If we add general data transform:
     #  data: list[NamedDynamic] | DefaultType
