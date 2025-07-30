@@ -1,5 +1,5 @@
 import enum
-from typing import Literal
+from typing import Literal, TypeAlias
 
 
 class Sentinel(enum.Enum):
@@ -10,3 +10,6 @@ class Sentinel(enum.Enum):
 
 DefaultType = Literal[Sentinel.Default]
 Default: DefaultType = Sentinel.Default
+
+# Any dynamic JSON/YAML-like object
+DynamicEntry: TypeAlias = str | int | float | bool | None | dict[str, "DynamicEntry"] | list["DynamicEntry"]

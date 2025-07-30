@@ -7,13 +7,14 @@ import libmambapy as mamba
 
 from mamba_press.typing import Default as Default
 from mamba_press.typing import DefaultType as DefaultType
+from mamba_press.typing import DynamicEntry as DynamicEntry
 
-# Any dynamic JSON/YAML-like object
-DynamicEntry: TypeAlias = str | int | float | bool | None | dict[str, "DynamicEntry"] | list["DynamicEntry"]
+# A dynamic named parameters
+DynamicParams: TypeAlias = dict[str, DynamicEntry]
 
 # A dynamic JSON/YAML-like object with a single key used as a name.
 # This is used for separating a dynamic class name from its parameters.
-NamedDynamicEntry: TypeAlias = dict[str, DynamicEntry]
+NamedDynamicEntry: TypeAlias = dict[str, DynamicParams]
 
 
 @dataclasses.dataclass
