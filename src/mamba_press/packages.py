@@ -150,9 +150,13 @@ def load_subdirs_in_database(
         )
 
 
-def make_request(needed: Iterable[mamba.specs.MatchSpec]) -> mamba.solver.Request:
+def make_request(
+    needed: Iterable[mamba.specs.MatchSpec], python: mamba.specs.MatchSpec
+) -> mamba.solver.Request:
     """Make a solver request to install all the needed packages."""
-    return mamba.solver.Request([mamba.solver.Request.Install(s) for s in needed])
+    jobs = mamba.solver.Request.JobList(mamba.solver.Request.Install(s) for s in needed)
+    jobs.append(mamba.solver.Request.Pin(python))
+    return mamba.solver.Request(jobs)
 
 
 def solve_for_packages(
