@@ -12,6 +12,7 @@ import lief
 
 import mamba_press
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 
@@ -81,10 +82,10 @@ def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
 
 
 def make_relocator(
-    platform: str,
+    wheel_split: WheelPlatformSplit,
 ) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
     """Create platform specific DynamicLibRelocate."""
-    if mamba_press.platform.platform_wheel_is_macos(platform):
+    if wheel_split.is_macos:
         return mamba_press.transform.dynlib.MachODynamicLibRelocate(
             mamba_press.filter.UnixFilesFilter(
                 [
@@ -101,11 +102,11 @@ def make_relocator(
                 exclude=False,
             )
         )
-    if mamba_press.platform.platform_wheel_is_manylinux(platform):
+    if wheel_split.is_manylinux:
         return mamba_press.transform.dynlib.ElfDynamicLibRelocate(
             mamba_press.filter.CombinedFilesFilter(
                 [
-                    mamba_press.filter.ManyLinuxWhitelist(platform),
+                    mamba_press.filter.ManyLinuxWhitelist(wheel_split),
                     # Sometimes this is marked as explicitly needed
                     mamba_press.filter.UnixFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
                 ],
@@ -113,7 +114,7 @@ def make_relocator(
             )
         )
 
-    raise ValueError(f'Invalid or unsupported platform "{platform}"')
+    raise ValueError(f'Invalid or unsupported platform "{wheel_split}"')
 
 
 def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
@@ -123,19 +124,36 @@ def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
             yield p.relative_to(path)
 
 
+def make_wheel_split(platform: mamba_press.recipe.TargetPlatform) -> mamba_press.platform.WheelPlatformSplit:
+    """Convert from the recipe target platform to a full split."""
+    version = platform.version.replace("_", ".").split(".")
+
+    return mamba_press.platform.WheelPlatformSplit(
+        os=platform.os,
+        arch=platform.arch,
+        major=version[0] if len(version) > 0 else "",
+        minor=version[1] if len(version) > 1 else "",
+    )
+
+
 def main(
     execution_params: mamba_press.execution.ExecutionParams,
     channel_params: mamba_press.packages.ChannelParams,
     cache_params: mamba_press.packages.CacheParams,
+    recipe: mamba_press.Recipe,
 ) -> None:
     """Press Conda packages into wheels."""
-    solution_filters = make_solution_filters(execution_params.packages)
+    wheel_split = make_wheel_split(recipe.target.platform)
+
+    solution_filters = make_solution_filters(recipe.source.packages)
 
     packages_data, caches, channel_resolve_params = mamba_press.execution.compute_solution(
         execution_params=execution_params,
         channel_params=channel_params,
         cache_params=cache_params,
         solution_filters=solution_filters,
+        source=recipe.source,
+        wheel_split=wheel_split,
     )
 
     working_artifacts = mamba_press.execution.create_working_env(
@@ -153,7 +171,7 @@ def main(
         working_artifacts=working_artifacts,
         files_filters=files_filters,
         path_transforms=path_transforms,
-        relocator=make_relocator(execution_params.platform),  # type: ignore[misc]
+        relocator=make_relocator(wheel_split),  # type: ignore[misc]
     )
 
     mamba_press.execution.pack_wheel(
@@ -256,6 +274,8 @@ if __name__ == "__main__":
         formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=40),
     )
 
+    parser.add_argument("recipe_path", type=pathlib.Path)
+
     add_params_to_parser(parser, mamba_press.execution.ExecutionParams)
     add_params_to_parser(parser, mamba_press.packages.ChannelParams)
     add_params_to_parser(parser, mamba_press.packages.CacheParams)
@@ -267,8 +287,12 @@ if __name__ == "__main__":
     channel_params = load_params(cli=cli, env=env, klass=mamba_press.packages.ChannelParams)
     cache_params = load_params(cli=cli, env=env, klass=mamba_press.packages.CacheParams)
 
+    with open(cli["recipe_path"]) as f:
+        recipe = mamba_press.Recipe.parse_yaml(f.read())
+
     main(
         execution_params=execution_params,
         channel_params=channel_params,
         cache_params=cache_params,
+        recipe=recipe,
     )

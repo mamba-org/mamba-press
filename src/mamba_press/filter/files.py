@@ -3,6 +3,7 @@ import fnmatch
 import pathlib
 
 import mamba_press.platform
+from mamba_press.platform import WheelPlatformSplit
 
 from .protocol import FilesFilter
 
@@ -45,14 +46,17 @@ class CombinedFilesFilter(FilesFilter):
 class ManyLinuxWhitelist(FilesFilter):
     """Whitelist library allowed by manylinux spec."""
 
-    def __init__(self, platform: str, keep: bool = True) -> None:
+    def __init__(self, platform: str | WheelPlatformSplit, keep: bool = True) -> None:
         import auditwheel.policy
 
-        split = mamba_press.platform.WheelPlatformSplit.parse(platform)
+        if isinstance(platform, str):
+            split = mamba_press.platform.WheelPlatformSplit.parse(platform)
+        else:
+            split = platform
         self.policy = auditwheel.policy.WheelPolicies(
             libc=auditwheel.libc.Libc.GLIBC,  # Always on conda-forge
             arch=getattr(auditwheel.architecture.Architecture, split.arch),
-        ).get_policy_by_name(platform)
+        ).get_policy_by_name(str(platform))
         self.keep = keep  # TODO would be nicer to have not/and/or operators on filters
 
     def filter_file(self, path: pathlib.PurePath) -> bool:

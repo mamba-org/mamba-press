@@ -123,3 +123,6 @@ class RecipeV0:
             return mamba.specs.MatchSpec.parse(value)
 
         return converter.loads(yaml, RecipeV0)
+
+
+Recipe = RecipeV0

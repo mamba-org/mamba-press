@@ -15,6 +15,8 @@ import mamba_press.solution_utils
 import mamba_press.wheel
 from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import Source
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 
@@ -24,16 +26,6 @@ __logger__ = logging.getLogger(__name__)
 @dataclasses.dataclass(frozen=True, slots=True)
 class ExecutionParams:
     """Parameters controlling the execution of the program."""
-
-    platform: Annotated[str, Configurable(description="The wheel platform tag to build")]
-
-    packages: Annotated[
-        list[mamba.specs.MatchSpec],
-        Configurable(
-            description="The Conda packages used to build the wheel",
-            convert=lambda c: [mamba.specs.MatchSpec.parse(c)],
-        ),
-    ]
 
     working_dir: Annotated[
         pathlib.Path | None,
@@ -68,10 +60,12 @@ def compute_solution(
     execution_params: ExecutionParams,
     channel_params: mamba_press.packages.ChannelParams,
     cache_params: mamba_press.packages.CacheParams,
+    source: Source,
+    wheel_split: WheelPlatformSplit,
     solution_filters: list[SolutionFilter],
 ) -> tuple[PackagesData, mamba.MultiPackageCache, mamba.specs.ChannelResolveParams]:
     """Download the packages index and compute the packages required."""
-    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(execution_params.platform)
+    platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(wheel_split)
 
     channel_resolve_params = mamba_press.packages.make_channel_resolve_params(channel_params, platform)
     channels = mamba_press.packages.make_channels(
@@ -94,7 +88,7 @@ def compute_solution(
     )
 
     __logger__.info("Solving package requirements")
-    request = mamba_press.packages.make_request(execution_params.packages)
+    request = mamba_press.packages.make_request(source.packages)
     solution = mamba_press.packages.solve_for_packages(
         request=request,
         database=database,

@@ -36,6 +36,25 @@ class WheelPlatformSplit:
 
         return WheelPlatformSplit(**{k: v.lower() for k, v in match.groupdict().items()})
 
+    @property
+    def version(self) -> str:
+        """Return the full version."""
+        return f"{self.major}.{self.minor}"
+
+    @property
+    def is_macos(self) -> bool:
+        """Return true is the wheel platform is MacOS."""
+        return self.os.strip().lower() == "macosx"
+
+    @property
+    def is_manylinux(self) -> bool:
+        """Return true is the wheel platform is manylinux."""
+        return self.os.strip().lower() == "manylinux"
+
+    def __str__(self) -> str:
+        """Return the wheel platform tag."""
+        return f"{self.os}_{self.major}_{self.minor}_{self.arch}"
+
 
 def platform_conda_string(platform: mamba.specs.KnownPlatform) -> str:
     """Return the string representation of a Conda platform."""
@@ -59,17 +78,19 @@ def platform_wheel_is_manylinux(tag: str) -> bool:
     return tag.lower().startswith("manylinux")
 
 
-def platform_wheel_requirements(tag: str) -> tuple[mamba.specs.KnownPlatform, list[mamba.specs.PackageInfo]]:
-    """Convert a wheel platform tag to a Conda platform."""
-    split = WheelPlatformSplit.parse(tag)
-    platform = platform_wheel_to_conda(os=split.os, arch=split.arch)
+def platform_wheel_requirements(
+    platform: WheelPlatformSplit | str,
+) -> tuple[mamba.specs.KnownPlatform, list[mamba.specs.PackageInfo]]:
+    """Convert a wheel platform attributes to a Conda platform."""
+    split = WheelPlatformSplit.parse(platform) if isinstance(platform, str) else platform
+
+    conda_platform = platform_wheel_to_conda(os=split.os, arch=split.arch)
     packages_func = getattr(sys.modules[__name__], f"{split.os}_{split.arch}_virtual_packages", None)
 
-    if platform is None or packages_func is None:
+    if conda_platform is None or packages_func is None:
         raise NotImplementedError(f'Missing implementation for "{split.os}_{split.arch}"')
-
-    packages: list[mamba.specs.PackageInfo] = packages_func(f"{split.major}.{split.minor}")
-    return platform, packages
+    packages: list[mamba.specs.PackageInfo] = packages_func(split.version)
+    return conda_platform, packages
 
 
 def macosx_arm64_virtual_packages(os_version: str) -> list[mamba.specs.PackageInfo]:
