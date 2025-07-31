@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import cattrs.preconf.pyyaml
 import cattrs.strategies
@@ -140,3 +140,12 @@ class RecipeV0:
 
 
 Recipe = RecipeV0
+
+
+class SourceConfigurable(Protocol):
+    """An object that can be created from a simple configuration."""
+
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source) -> "SourceConfigurable":
+        """Construct from simple parameters typically found in configurations."""
+        ...

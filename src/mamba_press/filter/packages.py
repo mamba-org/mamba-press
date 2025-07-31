@@ -5,11 +5,11 @@ import libmambapy as mamba
 import mamba_press.recipe
 import mamba_press.solution_utils
 from mamba_press.filter.abc import SolutionFilter
-from mamba_press.recipe import DynamicParams, Source
+from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PackagesFilter(SolutionFilter):
+class PackagesFilter(SolutionFilter, SourceConfigurable):
     """Remove packages from the the final wheel.
 
     This is used for removing dependencies of a package that we know should not be part of the
@@ -50,7 +50,7 @@ class PackagesFilter(SolutionFilter):
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PythonPackagesFilter(SolutionFilter):
+class PythonPackagesFilter(SolutionFilter, SourceConfigurable):
     """Remove Python and all Python packages except the ones requested."""
 
     requested_packages: list[mamba.specs.MatchSpec]
