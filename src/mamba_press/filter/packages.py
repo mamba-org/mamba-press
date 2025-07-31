@@ -4,7 +4,7 @@ import libmambapy as mamba
 
 import mamba_press.recipe
 import mamba_press.solution_utils
-from mamba_press.filter.protocol import SolutionFilter
+from mamba_press.filter.abc import SolutionFilter
 from mamba_press.recipe import DynamicParams, Source
 
 

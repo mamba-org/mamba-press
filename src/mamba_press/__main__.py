@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 import lief
 
 import mamba_press
-from mamba_press.filter.protocol import FilesFilter
+from mamba_press.filter.abc import FilesFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform

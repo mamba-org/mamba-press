@@ -5,7 +5,7 @@ import pathlib
 import mamba_press.platform
 from mamba_press.platform import WheelPlatformSplit
 
-from .protocol import FilesFilter
+from .abc import FilesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

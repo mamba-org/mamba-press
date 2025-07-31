@@ -6,7 +6,7 @@ from typing import Callable
 
 import lief
 
-from mamba_press.filter.protocol import FilesFilter
+from mamba_press.filter.abc import FilesFilter
 
 from . import utils
 from .abc import DynamicLibRelocate

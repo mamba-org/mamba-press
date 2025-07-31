@@ -3,7 +3,7 @@ import re
 from typing import Final
 
 import mamba_press.filter
-from mamba_press.filter.protocol import SolutionFilter
+from mamba_press.filter.abc import SolutionFilter
 from mamba_press.recipe import NamedDynamicEntry, Recipe
 from mamba_press.typing import Default
 
