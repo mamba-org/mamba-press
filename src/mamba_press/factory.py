@@ -1,23 +1,10 @@
 import importlib
-import re
-from typing import Final
 
 import mamba_press.filter
+import mamba_press.utils
 from mamba_press.filter.abc import SolutionFilter
 from mamba_press.recipe import NamedDynamicEntry, Recipe
 from mamba_press.typing import Default
-
-KEBAB_CASE_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b[a-z]+(?:-[a-z]+)*\b")
-
-
-def kebab_to_pascal(text: str) -> str:
-    """Transform kebab-case to PascalCase."""
-
-    def replacer(match: re.Match[str]) -> str:
-        parts = match.group().split("-")
-        return "".join(part.capitalize() for part in parts)
-
-    return KEBAB_CASE_PATTERN.sub(replacer, text)
 
 
 def make_plugin(  # type: ignore
@@ -32,7 +19,7 @@ def make_plugin(  # type: ignore
     name, params = entry.popitem()
     # A mamba_press standard filter
     if name.count(".") == 0:
-        class_name = kebab_to_pascal(name)
+        class_name = mamba_press.utils.kebab_to_pascal(name)
     # A plugin filter
     else:
         class_name = name.rsplit(".", 1)[-1]

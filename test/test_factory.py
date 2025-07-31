@@ -4,14 +4,6 @@ import mamba_press
 from mamba_press.typing import Default
 
 
-def test_kebab_to_pascal() -> None:
-    """Transform kebab-case to PascalCase."""
-    assert mamba_press.factory.kebab_to_pascal("kebab-case") == "KebabCase"
-    assert mamba_press.factory.kebab_to_pascal("k-e-b-ab") == "KEBAb"
-    assert mamba_press.factory.kebab_to_pascal("word") == "Word"
-    assert mamba_press.factory.kebab_to_pascal("") == ""
-
-
 def test_make_plugin() -> None:
     """Plugin work in standard and module mode."""
     source = unittest.mock.MagicMock()

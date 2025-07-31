@@ -3,7 +3,6 @@ import dataclasses
 import logging
 import os
 import pathlib
-import re
 import typing
 from collections.abc import Iterable, Mapping
 
@@ -14,13 +13,6 @@ from mamba_press.filter.abc import FilesFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
-
-INTERPOLATE_VAR_PATTERN = re.compile(r"\${{\s*(\w+)\s*}}")
-
-
-def interpolate(template: str, context: Mapping[str, object]) -> str:
-    """Replace variables with a simple JinJa-like syntax."""
-    return INTERPOLATE_VAR_PATTERN.sub(lambda m: str(context.get(m.group(1), "")), template)
 
 
 def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
@@ -45,9 +37,9 @@ def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
                 "*.a",
                 "*.pyc",
                 "*/__pycache__/*",
-                interpolate("${{ site_packages }}/*.dist-info/RECORD", context),
-                interpolate("${{ site_packages }}/*.dist-info/INSTALLER", context),
-                interpolate("${{ site_packages }}/*.dist-info/REQUESTED", context),
+                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/RECORD", context),
+                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/INSTALLER", context),
+                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/REQUESTED", context),
             ],
             exclude=True,
         ),
@@ -59,9 +51,13 @@ def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
     return [
         mamba_press.transform.PathRelocate(
             {
-                pathlib.PurePath(interpolate("${{ site_packages }}/", context)): pathlib.PurePath("."),
+                pathlib.PurePath(
+                    mamba_press.utils.interpolate("${{ site_packages }}/", context)
+                ): pathlib.PurePath("."),
                 # Due to lowest specificity, this will oonly be applied to remaining files
-                pathlib.PurePath("."): pathlib.PurePath(interpolate("${{ package_name }}/data/", context)),
+                pathlib.PurePath("."): pathlib.PurePath(
+                    mamba_press.utils.interpolate("${{ package_name }}/data/", context)
+                ),
             }
         ),
     ]
