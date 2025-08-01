@@ -1,9 +1,22 @@
+import unittest.mock as mock
 from pathlib import PurePath
 
 import mamba_press
 
 
-def test_glob_file_filter() -> None:
+def test_unix_filter_from_config() -> None:
+    """Can be created from a dictionary."""
+    filter = mamba_press.filter.UnixFilesFilter.from_config(
+        {"patterns": ["file.py", "dir/bar"]},
+        source=mock.MagicMock(),
+    )
+
+    assert len(filter.patterns) == 2
+    assert str(filter.patterns[1]) == "dir/bar"
+    assert filter.exclude
+
+
+def test_unix_file_filter() -> None:
     """Files are excluded if they match any pattern."""
     filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"])
 
@@ -18,7 +31,7 @@ def test_glob_file_filter() -> None:
     assert not filter.filter_file(PurePath("folder/file.hpp"))
 
 
-def test_glob_file_filter_include() -> None:
+def test_unix_file_filter_include() -> None:
     """Files are included if they match any pattern."""
     filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"], exclude=False)
 

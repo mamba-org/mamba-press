@@ -3,13 +3,15 @@ import fnmatch
 import pathlib
 
 import mamba_press.platform
+import mamba_press.recipe
 from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
 
 from .abc import FilesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class UnixFilesFilter(FilesFilter):
+class UnixFilesFilter(FilesFilter, SourceConfigurable):
     """Filter files from the wheel.
 
     The patterns are applied individually to every file path (as a relative to the prefix root).
@@ -19,6 +21,17 @@ class UnixFilesFilter(FilesFilter):
 
     patterns: list[str]
     exclude: bool = True
+
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source) -> "UnixFilesFilter":
+        """Construct from simple parameters typically found in configurations."""
+        patterns = mamba_press.recipe.get_param_as("patterns", params=params, type_=list)
+        params.pop("patterns")
+
+        return UnixFilesFilter(
+            patterns=patterns,
+            **params,  # type: ignore[arg-type]
+        )
 
     def filter_file(self, path: pathlib.PurePath) -> bool:
         """Whether the file should be kept i.e. not filtered out."""

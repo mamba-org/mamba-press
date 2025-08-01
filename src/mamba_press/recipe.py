@@ -143,7 +143,7 @@ Recipe = RecipeV0
 
 
 class SourceConfigurable(Protocol):
-    """An object that can be created from a simple configuration."""
+    """An object that can be created from a simple configuration and recipe source info."""
 
     @classmethod
     def from_config(cls, params: DynamicParams, source: Source) -> "SourceConfigurable":
