@@ -6,7 +6,7 @@ import mamba_press
 
 def test_unix_filter_from_config() -> None:
     """Can be created from a dictionary."""
-    filter = mamba_press.filter.UnixFilesFilter.from_config(
+    filter = mamba_press.filter.UnixGlobFilesFilter.from_config(
         {"patterns": ["file.py", "dir/bar"]},
         source=mock.MagicMock(),
     )
@@ -18,7 +18,7 @@ def test_unix_filter_from_config() -> None:
 
 def test_unix_file_filter() -> None:
     """Files are excluded if they match any pattern."""
-    filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"])
+    filter = mamba_press.filter.UnixGlobFilesFilter(["*/bar/*.txt", "*.hpp"])
 
     assert filter.filter_file(PurePath("bar.txt"))
     assert filter.filter_file(PurePath("bar/baz.txt"))
@@ -33,7 +33,7 @@ def test_unix_file_filter() -> None:
 
 def test_unix_file_filter_include() -> None:
     """Files are included if they match any pattern."""
-    filter = mamba_press.filter.UnixFilesFilter(["*/bar/*.txt", "*.hpp"], exclude=False)
+    filter = mamba_press.filter.UnixGlobFilesFilter(["*/bar/*.txt", "*.hpp"], exclude=False)
 
     assert not filter.filter_file(PurePath("bar.txt"))
     assert not filter.filter_file(PurePath("bar/baz.txt"))
@@ -48,8 +48,8 @@ def test_unix_file_filter_include() -> None:
 
 def test_combined_filter() -> None:
     """Combined filter apply all filters."""
-    filter1 = mamba_press.filter.UnixFilesFilter(["lib/*"], exclude=False)
-    filter2 = mamba_press.filter.UnixFilesFilter(["lib/python/*"], exclude=False)
+    filter1 = mamba_press.filter.UnixGlobFilesFilter(["lib/*"], exclude=False)
+    filter2 = mamba_press.filter.UnixGlobFilesFilter(["lib/python/*"], exclude=False)
 
     combined_all = mamba_press.filter.CombinedFilesFilter([filter1, filter2], all=True)
     assert combined_all.filter_file(PurePath("lib/python/bar.py"))

@@ -11,7 +11,7 @@ from .abc import FilesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class UnixFilesFilter(FilesFilter, SourceConfigurable):
+class UnixGlobFilesFilter(FilesFilter, SourceConfigurable):
     """Filter files from the wheel.
 
     The patterns are applied individually to every file path (as a relative to the prefix root).
@@ -23,12 +23,12 @@ class UnixFilesFilter(FilesFilter, SourceConfigurable):
     exclude: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "UnixFilesFilter":
+    def from_config(cls, params: DynamicParams, source: Source) -> "UnixGlobFilesFilter":
         """Construct from simple parameters typically found in configurations."""
         patterns = mamba_press.recipe.get_param_as("patterns", params=params, type_=list)
         params.pop("patterns")
 
-        return UnixFilesFilter(
+        return UnixGlobFilesFilter(
             patterns=patterns,
             **params,  # type: ignore[arg-type]
         )

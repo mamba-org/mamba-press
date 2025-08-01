@@ -2,7 +2,7 @@
 
 from . import abc, files, packages
 from .abc import FilesFilter, SolutionFilter
-from .files import CombinedFilesFilter, ManyLinuxWhitelist, UnixFilesFilter
+from .files import CombinedFilesFilter, ManyLinuxWhitelist, UnixGlobFilesFilter
 from .packages import PackagesFilter, PythonPackagesFilter
 
 __all__ = [
@@ -12,7 +12,7 @@ __all__ = [
     "PackagesFilter",
     "PythonPackagesFilter",
     "SolutionFilter",
-    "UnixFilesFilter",
+    "UnixGlobFilesFilter",
     "abc",
     "files",
     "packages",

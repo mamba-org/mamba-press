@@ -20,7 +20,7 @@ def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
     # We would want to filter Manylinux whitelisted libraries but the libstdc++ on
     # conda-forge is too recent to even match a manylinux tag.
     return [
-        mamba_press.filter.UnixFilesFilter(
+        mamba_press.filter.UnixGlobFilesFilter(
             [
                 "conda-meta/*",
                 "etc/conda/*",
@@ -69,7 +69,7 @@ def make_relocator(
     """Create platform specific DynamicLibRelocate."""
     if wheel_split.is_macos:
         return mamba_press.transform.dynlib.MachODynamicLibRelocate(
-            mamba_press.filter.UnixFilesFilter(
+            mamba_press.filter.UnixGlobFilesFilter(
                 [
                     # https://github.com/conda/conda-build/blob/main/conda_build/post.py
                     "/opt/X11/*.dylib",
@@ -90,7 +90,7 @@ def make_relocator(
                 [
                     mamba_press.filter.ManyLinuxWhitelist(wheel_split),
                     # Sometimes this is marked as explicitly needed
-                    mamba_press.filter.UnixFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
+                    mamba_press.filter.UnixGlobFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
                 ],
                 all=False,
             )
