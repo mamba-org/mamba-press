@@ -17,7 +17,7 @@ from mamba_press.transform.protocol import PathTransform
 def make_path_transforms(context: Mapping[str, str]) -> list[PathTransform]:
     """Return default path transforms."""
     return [
-        mamba_press.transform.PathRelocate(
+        mamba_press.transform.ExplicitPathTransform(
             {
                 pathlib.PurePath(
                     mamba_press.utils.interpolate("${{ site_packages }}/", context)

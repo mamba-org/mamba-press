@@ -1,10 +1,10 @@
 """Transform package files."""
 
 from . import dynlib, path
-from .path import PathRelocate
+from .path import ExplicitPathTransform
 
 __all__ = [
-    "PathRelocate",
+    "ExplicitPathTransform",
     "dynlib",
     "path",
 ]

@@ -1,9 +1,11 @@
 import dataclasses
 import pathlib
 
+from .protocol import PathTransform
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PathRelocate:
+class ExplicitPathTransform(PathTransform):
     """Relocate file and folder from the given mapping.
 
     Search for the most specific mapping to apply at each transformation.

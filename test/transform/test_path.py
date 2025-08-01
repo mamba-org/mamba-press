@@ -5,7 +5,7 @@ import mamba_press
 
 def test_path_relocate() -> None:
     """Relocate according to mapping."""
-    relocator = mamba_press.transform.PathRelocate(
+    relocator = mamba_press.transform.ExplicitPathTransform(
         {
             PurePath("lib/libamazing.so"): PurePath("pkg/libamazing.so"),
             PurePath("lib/"): PurePath("pkg/lib/"),
