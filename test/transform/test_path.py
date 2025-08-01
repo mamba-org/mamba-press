@@ -1,6 +1,20 @@
+import unittest.mock as mock
 from pathlib import PurePath
 
 import mamba_press
+
+
+def test_explicit_transform_from_config() -> None:
+    """Can be created from a dictionary."""
+    transform = mamba_press.transform.ExplicitPathTransform.from_config(
+        {"mapping": [{"from": "a", "to": "b"}, {"from": "c", "to": "d"}]},
+        source=mock.MagicMock(),
+    )
+
+    assert transform.mapping == {
+        PurePath("a"): PurePath("b"),
+        PurePath("c"): PurePath("d"),
+    }
 
 
 def test_path_relocate() -> None:
