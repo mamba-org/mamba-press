@@ -63,3 +63,4 @@ There are current limitations to this project:
 - [ ] Let user specify an external lib soname + ``RPATH`` for finding a lib in an external package.
 - [ ] Add Conda Python packages dependencies as PyPI dependencies in wheel (though they could
   already be specified in metadata from sources such as ``pyproject.toml``).
+- [ ] Add test section (import, auditwheel)
