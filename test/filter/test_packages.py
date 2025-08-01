@@ -7,7 +7,7 @@ import mamba_press
 
 def test_package_filter_from_config() -> None:
     """Can be created from a dictionary."""
-    filter = mamba_press.filter.PackagesFilter.from_config(
+    filter = mamba_press.filter.PackagesSolutionFilter.from_config(
         {"to_prune": ["foo>1"]},
         source=mock.MagicMock(),
     )
@@ -30,7 +30,7 @@ def test_package_filter_pyarrow() -> None:
     ]
     solution = make_pyarrow_solution()
 
-    filter = mamba_press.filter.PackagesFilter(
+    filter = mamba_press.filter.PackagesSolutionFilter(
         to_prune=to_prune,
         requested_packages=requested_packages,
     )
@@ -52,7 +52,7 @@ def test_package_filter_pyarrow() -> None:
 
 def test_python_filter_from_config() -> None:
     """Can be created from a dictionary."""
-    filter = mamba_press.filter.PythonPackagesFilter.from_config(
+    filter = mamba_press.filter.PythonPackagesSolutionFilter.from_config(
         {"python_packages": ["foo>1"], "recursive": False},
         source=mock.MagicMock(),
     )
@@ -68,7 +68,7 @@ def test_python_filter_pinocchio() -> None:
     requested_packages = [mamba.specs.MatchSpec.parse("pinocchio")]
     solution = make_pinocchio_solution()
 
-    filter = mamba_press.filter.PythonPackagesFilter(
+    filter = mamba_press.filter.PythonPackagesSolutionFilter(
         requested_packages=requested_packages,
     )
     pruned = filter.filter_solution(solution)

@@ -9,7 +9,7 @@ from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PackagesFilter(SolutionFilter, SourceConfigurable):
+class PackagesSolutionFilter(SolutionFilter, SourceConfigurable):
     """Remove packages from the the final wheel.
 
     This is used for removing dependencies of a package that we know should not be part of the
@@ -25,7 +25,7 @@ class PackagesFilter(SolutionFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "PackagesFilter":
+    def from_config(cls, params: DynamicParams, source: Source) -> "PackagesSolutionFilter":
         """Construct from simple parameters typically found in configurations."""
         to_prune = [
             mamba.specs.MatchSpec.parse(ms)
@@ -33,7 +33,7 @@ class PackagesFilter(SolutionFilter, SourceConfigurable):
         ]
         params.pop("to_prune")
 
-        return PackagesFilter(
+        return PackagesSolutionFilter(
             requested_packages=source.packages,
             to_prune=to_prune,
             **params,  # type: ignore[arg-type]
@@ -50,7 +50,7 @@ class PackagesFilter(SolutionFilter, SourceConfigurable):
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PythonPackagesFilter(SolutionFilter, SourceConfigurable):
+class PythonPackagesSolutionFilter(SolutionFilter, SourceConfigurable):
     """Remove Python and all Python packages except the ones requested."""
 
     requested_packages: list[mamba.specs.MatchSpec]
@@ -63,9 +63,9 @@ class PythonPackagesFilter(SolutionFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "PythonPackagesFilter":
+    def from_config(cls, params: DynamicParams, source: Source) -> "PythonPackagesSolutionFilter":
         """Construct from simple parameters typically found in configurations."""
-        return PythonPackagesFilter(
+        return PythonPackagesSolutionFilter(
             requested_packages=source.packages,
             **params,  # type: ignore[arg-type]
         )

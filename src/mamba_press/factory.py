@@ -37,27 +37,37 @@ def make_plugin(  # type: ignore
     return class_.from_config(params, **kwargs)
 
 
+DEFAULT_SOLUTION_FILTERS: Final[list[NamedDynamicEntry]] = [
+    {
+        "packages": {
+            "to_prune": ["python", "python_abi"],
+            "recursive": True,
+        }
+    },
+]
+
+
 def make_solution_filters(recipe: Recipe) -> list[SolutionFilter]:
     """Import and instantiate required solution filters."""
-    packages = ["python", "python_abi"]
-
+    entries = DEFAULT_SOLUTION_FILTERS
+    # packages entry is a syntaxic sugar for solution.packages.to_prune
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
         packages = mamba_press.recipe.get_param_as(
             "packages",
             params=recipe.build.filter.packages,  # type: ignore[arg-type]
             type_=list[str],
         )
+        entries[0]["packages"]["to_prune"] = packages  # type: ignore[assignment]
 
-    plugin = make_plugin(
-        {
-            "PackagesFilter": {
-                "to_prune": packages,  # type: ignore[dict-item]
-            }
-        },
-        module_name="mamba_press.filter",
-        source=recipe.source,
-    )
-    return [plugin]  # type: ignore[list-item]
+    return [
+        make_plugin(
+            e,
+            module_name="mamba_press.filter",
+            class_suffix="SolutionFilter",
+            source=recipe.source,
+        )  # type: ignore[misc]
+        for e in entries
+    ]
 
 
 DEFAULT_FILES_FILTERS: Final[list[NamedDynamicEntry]] = [
