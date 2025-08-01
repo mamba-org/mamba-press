@@ -1,6 +1,5 @@
 import importlib
 from collections.abc import Mapping
-from typing import Final
 
 import mamba_press.filter
 import mamba_press.recipe
@@ -38,19 +37,21 @@ def make_plugin(  # type: ignore
     return class_.from_config(params, **kwargs)
 
 
-DEFAULT_SOLUTION_FILTERS: Final[list[NamedDynamicEntry]] = [
-    {
-        "by-name": {
-            "to_prune": ["python", "python_abi"],
-            "recursive": True,
-        }
-    },
-]
+def make_default_package_filters_config() -> list[NamedDynamicEntry]:
+    """Return the default package filter config."""
+    return [
+        {
+            "by-name": {
+                "to_prune": ["python", "python_abi"],
+                "recursive": True,
+            }
+        },
+    ]
 
 
 def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
     """Import and instantiate required solution filters."""
-    entries = DEFAULT_SOLUTION_FILTERS
+    entries = make_default_package_filters_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
         entries = recipe.build.filter.packages
 
@@ -65,38 +66,40 @@ def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
     ]
 
 
-DEFAULT_FILES_FILTERS: Final[list[NamedDynamicEntry]] = [
-    {
-        "unix-glob": {
-            "patterns": [
-                "conda-meta/*",
-                "etc/conda/*",
-                "man/*",
-                "ssl/*",
-                "share/man/*",
-                "share/terminfo/*",
-                "share/locale/*",
-                "bin/*",
-                "sbin/*",
-                "include/*",
-                "lib/pkgconfig/*",
-                "lib/cmake/*",
-                "*.a",
-                "*.pyc",
-                "*/__pycache__/*",
-                "${{ site_packages }}/*.dist-info/RECORD",
-                "${{ site_packages }}/*.dist-info/INSTALLER",
-                "${{ site_packages }}/*.dist-info/REQUESTED",
-            ],
-            "exclude": True,
-        }
-    },
-]
+def make_default_files_filters_config() -> list[NamedDynamicEntry]:
+    """Return the default file filter config."""
+    return [
+        {
+            "unix-glob": {
+                "patterns": [
+                    "conda-meta/*",
+                    "etc/conda/*",
+                    "man/*",
+                    "ssl/*",
+                    "share/man/*",
+                    "share/terminfo/*",
+                    "share/locale/*",
+                    "bin/*",
+                    "sbin/*",
+                    "include/*",
+                    "lib/pkgconfig/*",
+                    "lib/cmake/*",
+                    "*.a",
+                    "*.pyc",
+                    "*/__pycache__/*",
+                    "${{ site_packages }}/*.dist-info/RECORD",
+                    "${{ site_packages }}/*.dist-info/INSTALLER",
+                    "${{ site_packages }}/*.dist-info/REQUESTED",
+                ],
+                "exclude": True,
+            }
+        },
+    ]
 
 
 def make_files_filters(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[FilesFilter]:
     """Import and instantiate required files filters."""
-    entries = DEFAULT_FILES_FILTERS
+    entries = make_default_files_filters_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.files != Default:
         entries = recipe.build.filter.files
 
@@ -116,22 +119,24 @@ def make_files_filters(recipe: Recipe, interpolation_context: Mapping[str, str])
     ]
 
 
-DEFAULT_PATH_TRANSFORMS: Final[list[NamedDynamicEntry]] = [
-    {
-        "explicit": {
-            "mapping": [
-                {"from": "${{ site_packages }}/", "to": "."},
-                # Due to lowest specificity, this will only be applied to remaining files
-                {"from": ".", "to": "${{ package_name }}/data/"},
-            ]
-        }
-    },
-]
+def make_default_path_transforms_config() -> list[NamedDynamicEntry]:
+    """Return the default path trnasform config."""
+    return [
+        {
+            "explicit": {
+                "mapping": [
+                    {"from": "${{ site_packages }}/", "to": "."},
+                    # Due to lowest specificity, this will only be applied to remaining files
+                    {"from": ".", "to": "${{ package_name }}/data/"},
+                ]
+            }
+        },
+    ]
 
 
 def make_path_transforms(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[PathTransform]:
     """Import and instantiate required path transforms."""
-    entries = DEFAULT_PATH_TRANSFORMS
+    entries = make_default_path_transforms_config()
     if (
         recipe.build != Default
         and recipe.build.transform != Default
