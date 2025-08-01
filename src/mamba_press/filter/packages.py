@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Self
 
 import libmambapy as mamba
 
@@ -6,11 +7,11 @@ import mamba_press.recipe
 import mamba_press.solution_utils
 from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
 
-from .protocol import SolutionFilter
+from .protocol import PackagesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PackagesSolutionFilter(SolutionFilter, SourceConfigurable):
+class ByNamePackagesFilter(PackagesFilter, SourceConfigurable):
     """Remove packages from the the final wheel.
 
     This is used for removing dependencies of a package that we know should not be part of the
@@ -26,7 +27,7 @@ class PackagesSolutionFilter(SolutionFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "PackagesSolutionFilter":
+    def from_config(cls, params: DynamicParams, source: Source) -> Self:
         """Construct from simple parameters typically found in configurations."""
         to_prune = [
             mamba.specs.MatchSpec.parse(ms)
@@ -34,7 +35,7 @@ class PackagesSolutionFilter(SolutionFilter, SourceConfigurable):
         ]
         params.pop("to_prune")
 
-        return PackagesSolutionFilter(
+        return cls(
             requested_packages=source.packages,
             to_prune=to_prune,
             **params,  # type: ignore[arg-type]
@@ -51,7 +52,7 @@ class PackagesSolutionFilter(SolutionFilter, SourceConfigurable):
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PythonPackagesSolutionFilter(SolutionFilter, SourceConfigurable):
+class PythonDependenciesPackagesFilter(PackagesFilter, SourceConfigurable):
     """Remove Python and all Python packages except the ones requested."""
 
     requested_packages: list[mamba.specs.MatchSpec]
@@ -64,9 +65,9 @@ class PythonPackagesSolutionFilter(SolutionFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "PythonPackagesSolutionFilter":
+    def from_config(cls, params: DynamicParams, source: Source) -> Self:
         """Construct from simple parameters typically found in configurations."""
-        return PythonPackagesSolutionFilter(
+        return cls(
             requested_packages=source.packages,
             **params,  # type: ignore[arg-type]
         )

@@ -32,13 +32,14 @@ def test_make_plugin() -> None:
     source = unittest.mock.MagicMock()
 
     plugin1 = mamba_press.factory.make_plugin(
-        {"PackagesSolutionFilter": {"to_prune": ["foo"]}},
+        {"by-name": {"to_prune": ["foo"]}},
         module_name="mamba_press.filter",
+        class_suffix="PackagesFilter",
         source=source,
     )
 
     plugin2 = mamba_press.factory.make_plugin(
-        {"mamba_press.filter.PackagesSolutionFilter": {"to_prune": ["foo"]}},
+        {"mamba_press.filter.ByNamePackagesFilter": {"to_prune": ["foo"]}},
         module_name="unused",
         source=source,
     )
@@ -58,6 +59,6 @@ def test_make_solution_filter() -> None:
 
     plugins = mamba_press.factory.make_solution_filters(recipe)
     assert len(plugins) == 1
-    assert isinstance(plugins[0], mamba_press.filter.PackagesSolutionFilter)
+    assert isinstance(plugins[0], mamba_press.filter.ByNamePackagesFilter)
     # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
     assert set(str(ms) for ms in plugins[0].to_prune) == {"python", "python_abi"}

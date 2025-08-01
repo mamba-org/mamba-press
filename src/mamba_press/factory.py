@@ -5,7 +5,7 @@ from typing import Final
 import mamba_press.filter
 import mamba_press.recipe
 import mamba_press.utils
-from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.recipe import NamedDynamicEntry, Recipe
 from mamba_press.typing import Default
 
@@ -39,7 +39,7 @@ def make_plugin(  # type: ignore
 
 DEFAULT_SOLUTION_FILTERS: Final[list[NamedDynamicEntry]] = [
     {
-        "packages": {
+        "by-name": {
             "to_prune": ["python", "python_abi"],
             "recursive": True,
         }
@@ -47,7 +47,7 @@ DEFAULT_SOLUTION_FILTERS: Final[list[NamedDynamicEntry]] = [
 ]
 
 
-def make_solution_filters(recipe: Recipe) -> list[SolutionFilter]:
+def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
     """Import and instantiate required solution filters."""
     entries = DEFAULT_SOLUTION_FILTERS
     # packages entry is a syntaxic sugar for solution.packages.to_prune
@@ -63,7 +63,7 @@ def make_solution_filters(recipe: Recipe) -> list[SolutionFilter]:
         make_plugin(
             e,
             module_name="mamba_press.filter",
-            class_suffix="SolutionFilter",
+            class_suffix="PackagesFilter",
             source=recipe.source,
         )  # type: ignore[misc]
         for e in entries

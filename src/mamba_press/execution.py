@@ -14,7 +14,7 @@ import mamba_press.packages
 import mamba_press.solution_utils
 import mamba_press.wheel
 from mamba_press.config import Configurable
-from mamba_press.filter.protocol import FilesFilter, SolutionFilter
+from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.recipe import Source
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate
@@ -62,7 +62,7 @@ def compute_solution(
     cache_params: mamba_press.packages.CacheParams,
     source: Source,
     wheel_split: WheelPlatformSplit,
-    solution_filters: list[SolutionFilter],
+    solution_filters: list[PackagesFilter],
 ) -> tuple[PackagesData, mamba.MultiPackageCache, mamba.specs.ChannelResolveParams]:
     """Download the packages index and compute the packages required."""
     platform, virtual_packages = mamba_press.platform.platform_wheel_requirements(wheel_split)

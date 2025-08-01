@@ -4,7 +4,7 @@ from typing import Protocol
 import libmambapy as mamba
 
 
-class SolutionFilter(Protocol):
+class PackagesFilter(Protocol):
     """Filter packages from solution packages.
 
     This happens before the packages are collected/downloaded and extracted.

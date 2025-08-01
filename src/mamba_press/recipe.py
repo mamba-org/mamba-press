@@ -90,7 +90,7 @@ class Filter:
 
     Attributes:
         packages: A syntaxic sugar entry key for the :ref:mamba_press.filter.PackagesFilter kind
-            of :ref:mamba_press.filter.SolutionFilter, since it is the most (only?) useful of its
+            of :ref:mamba_press.filter.PackagesFilter, since it is the most (only?) useful of its
             type so far.
         files: List of dynamic dispatched mamba_press.filter.FilesFilter
 
