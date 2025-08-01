@@ -7,7 +7,7 @@ import mamba_press.recipe
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
 
-from .abc import FilesFilter
+from .protocol import FilesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

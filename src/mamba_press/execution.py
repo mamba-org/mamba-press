@@ -14,7 +14,7 @@ import mamba_press.packages
 import mamba_press.solution_utils
 import mamba_press.wheel
 from mamba_press.config import Configurable
-from mamba_press.filter.abc import FilesFilter, SolutionFilter
+from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.recipe import Source
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate

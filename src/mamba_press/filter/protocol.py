@@ -1,4 +1,3 @@
-import abc
 import pathlib
 from typing import Protocol
 
@@ -11,7 +10,6 @@ class SolutionFilter(Protocol):
     This happens before the packages are collected/downloaded and extracted.
     """
 
-    @abc.abstractmethod
     def filter_solution(self, solution: mamba.solver.Solution) -> mamba.solver.Solution:
         """Filter packages from solution packages to install."""
         ...

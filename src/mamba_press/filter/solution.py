@@ -4,8 +4,9 @@ import libmambapy as mamba
 
 import mamba_press.recipe
 import mamba_press.solution_utils
-from mamba_press.filter.abc import SolutionFilter
 from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
+
+from .protocol import SolutionFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

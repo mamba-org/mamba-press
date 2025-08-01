@@ -5,7 +5,7 @@ from typing import Final
 import mamba_press.filter
 import mamba_press.recipe
 import mamba_press.utils
-from mamba_press.filter.abc import FilesFilter, SolutionFilter
+from mamba_press.filter.protocol import FilesFilter, SolutionFilter
 from mamba_press.recipe import NamedDynamicEntry, Recipe
 from mamba_press.typing import Default
 

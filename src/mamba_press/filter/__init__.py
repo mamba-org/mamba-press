@@ -1,8 +1,8 @@
 """Filter elements from the wheel."""
 
-from . import abc, files, solution
-from .abc import FilesFilter, SolutionFilter
+from . import files, protocol, solution
 from .files import CombinedFilesFilter, ManyLinuxWhitelist, UnixGlobFilesFilter
+from .protocol import FilesFilter, SolutionFilter
 from .solution import PackagesSolutionFilter, PythonPackagesSolutionFilter
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
     "PythonPackagesSolutionFilter",
     "SolutionFilter",
     "UnixGlobFilesFilter",
-    "abc",
     "files",
+    "protocol",
     "solution",
 ]
