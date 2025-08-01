@@ -51,6 +51,7 @@ There are current limitations to this project:
 - Due to failure to change name ids on MacOS, absolute dynamic libraries dependencies cannot be replaced with a relative path.
 
 ## Missing features
+- [ ] Fix mamba cache warnings
 - [x] The version of Python cannot be specified.
 - [ ] Resolve lief issues on MacOS.
 - [ ] Actually produce a wheel with correct metadata.
