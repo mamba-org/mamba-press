@@ -9,44 +9,12 @@ from collections.abc import Iterable, Mapping
 import lief
 
 import mamba_press
-from mamba_press.filter.abc import FilesFilter
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 
 
-def make_files_filters(context: Mapping[str, object]) -> list[FilesFilter]:
-    """Return default filters on files."""
-    # We would want to filter Manylinux whitelisted libraries but the libstdc++ on
-    # conda-forge is too recent to even match a manylinux tag.
-    return [
-        mamba_press.filter.UnixGlobFilesFilter(
-            [
-                "conda-meta/*",
-                "etc/conda/*",
-                "man/*",
-                "ssl/*",
-                "share/man/*",
-                "share/terminfo/*",
-                "share/locale/*",
-                "bin/*",
-                "sbin/*",
-                "include/*",
-                "lib/pkgconfig/*",
-                "lib/cmake/*",
-                "*.a",
-                "*.pyc",
-                "*/__pycache__/*",
-                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/RECORD", context),
-                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/INSTALLER", context),
-                mamba_press.utils.interpolate("${{ site_packages }}/*.dist-info/REQUESTED", context),
-            ],
-            exclude=True,
-        ),
-    ]
-
-
-def make_path_transforms(context: Mapping[str, object]) -> list[PathTransform]:
+def make_path_transforms(context: Mapping[str, str]) -> list[PathTransform]:
     """Return default path transforms."""
     return [
         mamba_press.transform.PathRelocate(
@@ -146,7 +114,8 @@ def main(
     )
 
     context = mamba_press.execution.create_interpolation_context(working_artifacts)
-    files_filters = make_files_filters(context)
+    files_filters = mamba_press.factory.make_files_filters(recipe, context)
+
     path_transforms = make_path_transforms(context)
 
     mamba_press.execution.create_working_wheel(

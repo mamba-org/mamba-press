@@ -210,7 +210,7 @@ def create_working_env(
     return artifacts
 
 
-Context = dict[str, str | int]
+Context = dict[str, str]
 
 
 def create_interpolation_context(working_artifacts: WorkingArtifacts) -> Context:

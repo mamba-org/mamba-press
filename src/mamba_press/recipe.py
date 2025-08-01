@@ -19,7 +19,7 @@ DynamicParams: TypeAlias = dict[str, DynamicEntry]
 NamedDynamicEntry: TypeAlias = dict[str, DynamicParams]
 
 
-def interpolate_params(params: DynamicEntry, context: Mapping[str, object]) -> DynamicEntry:
+def interpolate_params(params: DynamicEntry, context: Mapping[str, str]) -> DynamicEntry:
     """Recursively interpolate all strings in a dynamic entry."""
     if isinstance(params, str):
         return mamba_press.utils.interpolate(params, context)
