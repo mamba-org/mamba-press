@@ -7,6 +7,7 @@ import mamba_press.recipe
 import mamba_press.utils
 from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.recipe import NamedDynamicEntry, Recipe
+from mamba_press.transform.protocol import PathTransform
 from mamba_press.typing import Default
 
 
@@ -109,6 +110,45 @@ def make_files_filters(recipe: Recipe, interpolation_context: Mapping[str, str])
             e,
             module_name="mamba_press.filter",
             class_suffix="FilesFilter",
+            source=recipe.source,
+        )  # type: ignore[misc]
+        for e in entries
+    ]
+
+
+DEFAULT_PATH_TRANSFORMS: Final[list[NamedDynamicEntry]] = [
+    {
+        "explicit": {
+            "mapping": [
+                {"from": "${{ site_packages }}/", "to": "."},
+                # Due to lowest specificity, this will only be applied to remaining files
+                {"from": ".", "to": "${{ package_name }}/data/"},
+            ]
+        }
+    },
+]
+
+
+def make_path_transforms(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[PathTransform]:
+    """Import and instantiate required path transforms."""
+    entries = DEFAULT_PATH_TRANSFORMS
+    if (
+        recipe.build != Default
+        and recipe.build.transform != Default
+        and recipe.build.transform.path != Default
+    ):
+        entries = recipe.build.transform.path
+
+    entries = mamba_press.recipe.interpolate_params(
+        entries,  # type: ignore[arg-type]
+        interpolation_context,
+    )  # type: ignore[assignment]
+
+    return [
+        make_plugin(
+            e,
+            module_name="mamba_press.transform",
+            class_suffix="PathTransform",
             source=recipe.source,
         )  # type: ignore[misc]
         for e in entries

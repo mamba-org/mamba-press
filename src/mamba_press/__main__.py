@@ -11,24 +11,6 @@ import lief
 import mamba_press
 from mamba_press.platform import WheelPlatformSplit
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
-from mamba_press.transform.protocol import PathTransform
-
-
-def make_path_transforms(context: Mapping[str, str]) -> list[PathTransform]:
-    """Return default path transforms."""
-    return [
-        mamba_press.transform.ExplicitPathTransform(
-            {
-                pathlib.PurePath(
-                    mamba_press.utils.interpolate("${{ site_packages }}/", context)
-                ): pathlib.PurePath("."),
-                # Due to lowest specificity, this will oonly be applied to remaining files
-                pathlib.PurePath("."): pathlib.PurePath(
-                    mamba_press.utils.interpolate("${{ package_name }}/data/", context)
-                ),
-            }
-        ),
-    ]
 
 
 def make_relocator(
@@ -116,7 +98,7 @@ def main(
     context = mamba_press.execution.create_interpolation_context(working_artifacts)
     files_filters = mamba_press.factory.make_files_filters(recipe, context)
 
-    path_transforms = make_path_transforms(context)
+    path_transforms = mamba_press.factory.make_path_transforms(recipe, context)
 
     mamba_press.execution.create_working_wheel(
         working_artifacts=working_artifacts,
