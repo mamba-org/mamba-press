@@ -1,10 +1,12 @@
 import dataclasses
+from collections.abc import Mapping
 from typing import Literal, Protocol, TypeAlias
 
 import cattrs.preconf.pyyaml
 import cattrs.strategies
 import libmambapy as mamba
 
+import mamba_press.utils
 from mamba_press.typing import Default as Default
 from mamba_press.typing import DefaultType as DefaultType
 from mamba_press.typing import DynamicEntry as DynamicEntry
@@ -15,6 +17,18 @@ DynamicParams: TypeAlias = dict[str, DynamicEntry]
 # A dynamic JSON/YAML-like object with a single key used as a name.
 # This is used for separating a dynamic class name from its parameters.
 NamedDynamicEntry: TypeAlias = dict[str, DynamicParams]
+
+
+def interpolate_params(params: DynamicEntry, context: Mapping[str, object]) -> DynamicEntry:
+    """Recursively interpolate all strings in a dynamic entry."""
+    if isinstance(params, str):
+        return mamba_press.utils.interpolate(params, context)
+    if isinstance(params, list):
+        return [interpolate_params(p, context) for p in params]
+    if isinstance(params, dict):
+        return {k: interpolate_params(v, context) for k, v in params.items()}
+
+    return params
 
 
 def get_param_as[T](key: str, params: DynamicParams, type_: type[T], default: DefaultType | T = Default) -> T:

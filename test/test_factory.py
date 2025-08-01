@@ -1,7 +1,30 @@
 import unittest.mock
 
 import mamba_press
-from mamba_press.typing import Default
+from mamba_press.typing import Default, DynamicEntry
+
+
+def test_interpolate_params() -> None:
+    """String values, not keys, are interpolated recursively."""
+    params: DynamicEntry = {
+        "${{ foo }}": "bar",
+        "recursive": {
+            "a": True,
+            "b": ["${{ bar }}/baz", "baz"],
+            "c": 33,
+        },
+    }
+    context = {"bar": "BAR"}
+    expected = {
+        "${{ foo }}": "bar",
+        "recursive": {
+            "a": True,
+            "b": ["BAR/baz", "baz"],
+            "c": 33,
+        },
+    }
+
+    assert mamba_press.recipe.interpolate_params(params, context) == expected
 
 
 def test_make_plugin() -> None:
