@@ -50,14 +50,8 @@ DEFAULT_SOLUTION_FILTERS: Final[list[NamedDynamicEntry]] = [
 def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
     """Import and instantiate required solution filters."""
     entries = DEFAULT_SOLUTION_FILTERS
-    # packages entry is a syntaxic sugar for solution.packages.to_prune
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
-        packages = mamba_press.recipe.get_param_as(
-            "packages",
-            params=recipe.build.filter.packages,  # type: ignore[arg-type]
-            type_=list[str],
-        )
-        entries[0]["packages"]["to_prune"] = packages  # type: ignore[assignment]
+        entries = recipe.build.filter.packages
 
     return [
         make_plugin(
