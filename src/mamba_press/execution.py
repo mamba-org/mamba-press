@@ -121,7 +121,7 @@ class WorkingArtifacts:
     def working_dir_path(self) -> pathlib.Path:
         """The root path of all the working artifacts manipulated by mamba_press."""
         if isinstance(self.working_dir, tempfile.TemporaryDirectory):
-            return pathlib.Path(self.working_dir.name)
+            return pathlib.Path(self.working_dir.name).resolve()
         return self.working_dir
 
     @property
