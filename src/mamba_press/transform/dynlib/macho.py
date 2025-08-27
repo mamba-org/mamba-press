@@ -2,7 +2,8 @@ import dataclasses
 import logging
 import os
 import pathlib
-from typing import Callable, Iterable, cast
+import subprocess
+from typing import Callable, Iterable, cast, override
 
 import lief
 
@@ -79,6 +80,8 @@ def relocate_bin(
     library_whitelist: FilesFilter,
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
+    bin.remove_signature()
+
     bin_path_relative = bin_path.relative_to(prefix_path)
     new_lib_path = path_transform(bin_path)
 
@@ -127,6 +130,16 @@ def relocate_bin(
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
 
 
+def codesign(path: str) -> None:
+    """Code sign an executable using the system codesign utility.
+
+    See also apple-codesign for a portable option.
+    https://github.com/indygreg/apple-platform-rs
+    """
+    cmd = ["/usr/bin/codesign", "-s", "-", "-f", path]
+    subprocess.run(cmd, capture_output=True, check=True, env={})
+
+
 @dataclasses.dataclass
 class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
     """Relocate Mach-O dynamic libraries RPATHs."""
@@ -144,6 +157,13 @@ class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
     def lib_name(self, bin: lief.MachO.Binary) -> str | None:
         """Return the filename in the Mach-O library id."""
         return lib_name(bin)
+
+    @override
+    def write_binary(self, bin: lief.MachO.Binary, path: pathlib.Path) -> None:
+        """Write the binary to file and codesign it."""
+        super().write_binary(bin, path)
+        __logger__.info(f"codesign {path}")
+        codesign(str(path.resolve()))
 
     def relocate_binary(
         self,
