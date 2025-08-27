@@ -8,7 +8,7 @@ __project_root__ = pathlib.Path(__file__).parent.parent
 
 def test_libmambapy(tmp_path: pathlib.Path) -> None:
     """The the build of libmambapy."""
-    with open(__project_root__ / "examples/libmambapy.yaml") as f:
+    with open(__project_root__ / "examples/libmambapy-2.3.1-cp313-manylinux_2_17_x86_64.yaml") as f:
         recipe = mamba_press.Recipe.parse_yaml(f.read())
 
     working_dir = tmp_path / "build"
@@ -27,7 +27,7 @@ def test_libmambapy(tmp_path: pathlib.Path) -> None:
         recipe=recipe,
     )
 
-    assert next(out_dir.glob("libmambapy-2.3.1-*311*.whl"))
+    assert next(out_dir.glob("libmambapy-2.3.1-*313*.whl"))
     # Looking into the internals
     assert (working_dir / "env").exists()
     assert (working_dir / "wheel").exists()

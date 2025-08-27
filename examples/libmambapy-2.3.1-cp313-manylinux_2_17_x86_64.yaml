@@ -3,7 +3,7 @@ version: 0
 source:
   packages:
     - libmambapy==2.3.1
-  python: python=3.11
+  python: python=3.13
 
 target:
   name: libmambapy
