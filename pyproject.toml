@@ -48,7 +48,7 @@ dev = { features = ["dev", "test"], solve-group = "default" }
 
 [tool.pixi.dependencies]
 python = ">=3.12.3"
-libmambapy = ">=2.3.0"
+libmambapy = ">=2.3.2"
 wheel = ">=0.45.1"
 auditwheel = "*"
 cattrs = ">=25.1.1"
