@@ -67,9 +67,9 @@ ruff = ">=0.4.7"
 pytest = ">=8.3.0"
 mypy = ">=1.11.0"
 libmambapy-stubs = "*"
-pre-commit = ">=3.8.0,<4.0"
-taplo = ">=0.9.2,<0.10"
-typos = ">=1.31.2,<2"
+pre-commit = ">=3.8.0"
+taplo = ">=0.9.2"
+typos = ">=1.31.2"
 
 [tool.pixi.feature.test.tasks]
 # Formatters
@@ -96,9 +96,9 @@ test = { depends-on = ["test-pytest"] }
 ci = { depends-on = ["check", "test"] }
 
 [tool.pixi.feature.dev.dependencies]
-jupyter = ">=1.0.0,<1.1"
-python-lsp-server-base = ">=1.11.0,<1.12"
-python-lsp-ruff = ">=2.2.1,<2.3"
+jupyter = ">=1.0.0"
+python-lsp-server-base = ">=1.11.0"
+python-lsp-ruff = ">=2.2.1"
 pylsp-mypy = ">=0.6.8"
 typos-lsp = "*"
 pre-commit = "*"
