@@ -1,7 +1,10 @@
 import dataclasses
+import types
+import typing
 from collections.abc import Mapping
 from typing import Literal, Protocol, TypeAlias
 
+import cattrs
 import cattrs.preconf.pyyaml
 import cattrs.strategies
 import libmambapy as mamba
@@ -72,7 +75,7 @@ class Target:
 
     Attributes:
         platform: See :ref:TargetPlatform
-        python: The whel python tag
+        python: The wheel python tag
         name: The wheel name
 
     """
@@ -140,11 +143,30 @@ class RecipeV0:
         """Parse the yaml recipe data."""
         converter = cattrs.preconf.pyyaml.make_converter()
 
-        cattrs.strategies.configure_union_passthrough(Build | DefaultType, converter)
+        def _union_with_default_structure(o: type) -> object:
+            def union_hook(data: object, type_: type[object]) -> object:
+                args = typing.get_args(type_)
 
-        @converter.register_structure_hook
-        def _parse_ms(value: str, type: type[object]) -> mamba.specs.MatchSpec:
-            return mamba.specs.MatchSpec.parse(value)
+                # we don't try to coerce None into anything
+                if data is None:
+                    return None
+
+                # Try to coerce into any types by order
+                for t in args:
+                    try:
+                        return converter.structure(data, t)
+                    except Exception:
+                        continue
+                raise ValueError(f"Could not cast {data} to {type_}")
+
+            return union_hook
+
+        converter.register_structure_hook_factory(
+            _is_union_with_default,
+            _union_with_default_structure,  # type: ignore[type-var]
+        )
+
+        converter.register_structure_hook(_parse_ms)
 
         return converter.loads(yaml, RecipeV0)
 
@@ -159,3 +181,25 @@ class SourceConfigurable(Protocol):
     def from_config(cls, params: DynamicParams, source: Source) -> "SourceConfigurable":
         """Construct from simple parameters typically found in configurations."""
         ...
+
+
+def _parse_ms(value: str, type: type[object]) -> mamba.specs.MatchSpec:
+    return mamba.specs.MatchSpec.parse(value)
+
+
+def _filter_union_with_default[T, U](type_: type[T]) -> type[object]:
+    type_origin = typing.get_origin(type_)
+    if type_origin is types.UnionType or type_origin is typing.Union:
+        args = [t for t in typing.get_args(type_) if t is not DefaultType]
+        if len(args) == 1:
+            return args[0]  # type: ignore[no-any-return]
+        else:
+            raise NotImplementedError("Default Union with more than one")
+    return type_
+
+
+def _is_union_with_default[T](type_: type[T]) -> bool:
+    type_origin = typing.get_origin(type_)
+    return (type_origin is types.UnionType or type_origin is typing.Union) and any(
+        t is DefaultType for t in typing.get_args(type_) if t is not type(None)
+    )
