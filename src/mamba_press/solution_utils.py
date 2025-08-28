@@ -132,7 +132,7 @@ def prune_packages_from_solution_installs(
     graph = make_packages_fulfillemnt_graph(requested_packages=requested_packages, packages=packages)
 
     for dep_idx, dep_pkg in enumerate(packages):
-        if is_to_prune_if_depending_on(dep_pkg):
+        if graph.has_package(dep_idx) and is_to_prune_if_depending_on(dep_pkg):
             fulfills = graph.fulfills(dep_idx)
             if fulfills is None:
                 raise RuntimeError(
