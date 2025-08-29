@@ -60,7 +60,7 @@ There are current limitations to this project:
   - [ ] The ``METADATA`` file is outdated.
   - [x] The ``RECORD`` file is outdated.
 - [x] Let user configure the file filters and transform via a config file.
-- [ ] Let user specify an external lib soname + ``RPATH`` for finding a lib in an external package.
+- [x] Let user specify an external lib soname + ``RPATH`` for finding a lib in an external package.
 - [ ] Add Conda Python packages dependencies as PyPI dependencies in wheel (though they could
   already be specified in metadata from sources such as ``pyproject.toml``).
 - [ ] Add test section (import, auditwheel)

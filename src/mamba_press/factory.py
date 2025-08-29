@@ -9,7 +9,7 @@ import mamba_press.transform.dynlib
 import mamba_press.utils
 from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import NamedDynamicEntry, Recipe
+from mamba_press.recipe import DynamicParams, NamedDynamicEntry, Recipe
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 from mamba_press.typing import Default
@@ -176,17 +176,24 @@ def make_transform_dynlib(
     recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
 ) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
     """Import and instantiate required dynlib transforms."""
-    klass: str | None = None
+    klass: str
     if wheel_split.is_macos:
         klass = "MachO"
     elif wheel_split.is_manylinux:
         klass = "Elf"
-
-    if klass is None:
+    else:
         raise ValueError(f'Invalid or unsupported platform "{wheel_split}"')
 
+    params: DynamicParams = {}
+    if (
+        recipe.build != Default
+        and recipe.build.transform != Default
+        and recipe.build.transform.dynlib != Default
+    ):
+        params = recipe.build.transform.dynlib
+
     return make_plugin(
-        {klass: {}},
+        {klass: params},
         module_name="mamba_press.transform.dynlib",
         class_suffix="DynamicLibRelocate",
         source=recipe.source,

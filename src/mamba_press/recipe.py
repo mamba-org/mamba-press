@@ -114,7 +114,7 @@ class Transform:
     """
 
     path: list[NamedDynamicEntry] | DefaultType = Default
-    dynlib: DefaultType | None = Default  # No args so far
+    dynlib: DynamicParams | DefaultType = Default
     # If we add general data transform:
     #  data: list[NamedDynamic] | DefaultType
 
@@ -154,6 +154,8 @@ class RecipeV0:
 
                 # Try to coerce into any types by order
                 for t in args:
+                    if t is DynamicParams and isinstance(data, dict):
+                        return data
                     try:
                         return converter.structure(data, t)
                     except Exception:

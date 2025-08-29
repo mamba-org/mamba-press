@@ -45,6 +45,10 @@ def test_recipe_parse_filter_packages() -> None:
           filter:
              packages:
                - python-dependencies: {}
+          transform:
+            dynlib:
+              extra-rpaths:
+                "libfoo.so.3.0.1": "somewhere/lib"
 
     """
 
