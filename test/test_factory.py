@@ -57,7 +57,7 @@ def test_make_packages_filter() -> None:
         build=Default,
     )
 
-    plugins = mamba_press.factory.make_solution_filters(recipe)
+    plugins = mamba_press.factory.make_filter_packages(recipe)
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.filter.ByNamePackagesFilter)
     # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
@@ -73,7 +73,7 @@ def test_make_files_filter() -> None:
         build=Default,
     )
 
-    plugins = mamba_press.factory.make_files_filters(recipe, {"site_packages": "TEST_STR"})
+    plugins = mamba_press.factory.make_filter_files(recipe, {"site_packages": "TEST_STR"})
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.filter.UnixGlobFilesFilter)
     # Test interpolation has been applied
@@ -89,7 +89,7 @@ def test_make_path_transforms() -> None:
         build=Default,
     )
 
-    plugins = mamba_press.factory.make_path_transforms(
+    plugins = mamba_press.factory.make_transform_paths(
         recipe, {"site_packages": "TEST_STR1", "package_name": "TEST_STR2"}
     )
     assert len(plugins) == 1

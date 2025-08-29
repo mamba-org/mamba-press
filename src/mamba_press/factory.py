@@ -37,7 +37,7 @@ def make_plugin(  # type: ignore
     return class_.from_config(params, **kwargs)
 
 
-def make_default_package_filters_config() -> list[NamedDynamicEntry]:
+def make_filter_package_default_config() -> list[NamedDynamicEntry]:
     """Return the default package filter config."""
     return [
         {
@@ -49,9 +49,9 @@ def make_default_package_filters_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
-    """Import and instantiate required solution filters."""
-    entries = make_default_package_filters_config()
+def make_filter_packages(recipe: Recipe) -> list[PackagesFilter]:
+    """Import and instantiate required packages filters."""
+    entries = make_filter_package_default_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
         entries = recipe.build.filter.packages
 
@@ -66,7 +66,7 @@ def make_solution_filters(recipe: Recipe) -> list[PackagesFilter]:
     ]
 
 
-def make_default_files_filters_config() -> list[NamedDynamicEntry]:
+def make_filter_files_default_config() -> list[NamedDynamicEntry]:
     """Return the default file filter config."""
     return [
         {
@@ -97,9 +97,9 @@ def make_default_files_filters_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_files_filters(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[FilesFilter]:
+def make_filter_files(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[FilesFilter]:
     """Import and instantiate required files filters."""
-    entries = make_default_files_filters_config()
+    entries = make_filter_files_default_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.files != Default:
         entries = recipe.build.filter.files
 
@@ -119,7 +119,7 @@ def make_files_filters(recipe: Recipe, interpolation_context: Mapping[str, str])
     ]
 
 
-def make_default_path_transforms_config() -> list[NamedDynamicEntry]:
+def make_transform_path_default_config() -> list[NamedDynamicEntry]:
     """Return the default path trnasform config."""
     return [
         {
@@ -134,9 +134,9 @@ def make_default_path_transforms_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_path_transforms(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[PathTransform]:
+def make_transform_paths(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[PathTransform]:
     """Import and instantiate required path transforms."""
-    entries = make_default_path_transforms_config()
+    entries = make_transform_path_default_config()
     if (
         recipe.build != Default
         and recipe.build.transform != Default

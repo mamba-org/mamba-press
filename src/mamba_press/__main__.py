@@ -77,7 +77,7 @@ def main(
     """Press Conda packages into wheels."""
     wheel_split = make_wheel_split(recipe.target.platform)
 
-    solution_filters = mamba_press.factory.make_solution_filters(recipe)
+    solution_filters = mamba_press.factory.make_filter_packages(recipe)
 
     packages_data, caches, channel_resolve_params = mamba_press.execution.compute_solution(
         execution_params=execution_params,
@@ -96,9 +96,9 @@ def main(
     )
 
     context = mamba_press.execution.create_interpolation_context(working_artifacts)
-    files_filters = mamba_press.factory.make_files_filters(recipe, context)
+    files_filters = mamba_press.factory.make_filter_files(recipe, context)
 
-    path_transforms = mamba_press.factory.make_path_transforms(recipe, context)
+    path_transforms = mamba_press.factory.make_transform_paths(recipe, context)
 
     mamba_press.execution.create_working_wheel(
         working_artifacts=working_artifacts,
