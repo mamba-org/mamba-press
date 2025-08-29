@@ -1,5 +1,7 @@
 import unittest.mock
 
+import libmambapy as mamba
+
 import mamba_press
 from mamba_press.typing import Default, DynamicEntry
 
@@ -47,8 +49,7 @@ def test_make_plugin() -> None:
         wheel_split=wheel_split,
     )
 
-    # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
-    assert str(plugin1.to_prune[0]) == str(plugin2.to_prune[0])  # type: ignore[attr-defined]
+    assert plugin1.to_prune[0] == plugin2.to_prune[0]  # type: ignore[attr-defined]
 
 
 def test_make_packages_filter() -> None:
@@ -63,8 +64,10 @@ def test_make_packages_filter() -> None:
     plugins = mamba_press.factory.make_filter_packages(recipe, wheel_split=unittest.mock.MagicMock())
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.filter.ByNamePackagesFilter)
-    # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
-    assert set(str(ms) for ms in plugins[0].to_prune) == {"python", "python_abi"}
+    assert plugins[0].to_prune == [
+        mamba.specs.MatchSpec.parse("python"),
+        mamba.specs.MatchSpec.parse("python_abi"),
+    ]
 
 
 def test_make_files_filter() -> None:
