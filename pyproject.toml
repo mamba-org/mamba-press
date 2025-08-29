@@ -102,6 +102,10 @@ python-lsp-ruff = ">=2.2.1"
 pylsp-mypy = ">=0.6.8"
 typos-lsp = "*"
 pre-commit = "*"
+pdbpp = "*"
 
 [tool.pixi.feature.dev.tasks]
 pre-commit = "pre-commit"
+mamba-press-dev = """
+rm -rf build && python -m mamba_press --working-dir build/
+"""

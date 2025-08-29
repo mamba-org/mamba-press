@@ -186,7 +186,7 @@ def create_working_env(
     if execution_params.working_dir is None:
         working_dir = tempfile.TemporaryDirectory(prefix="mamba-press")
     else:
-        working_dir = execution_params.working_dir
+        working_dir = execution_params.working_dir.resolve()
 
     python = packages_data.python
     if python is None:
