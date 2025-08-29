@@ -54,7 +54,7 @@ def make_filter_package_default_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_filter_packages(recipe: Recipe) -> list[PackagesFilter]:
+def make_filter_packages(recipe: Recipe, wheel_split: WheelPlatformSplit) -> list[PackagesFilter]:
     """Import and instantiate required packages filters."""
     entries = make_filter_package_default_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
@@ -66,6 +66,7 @@ def make_filter_packages(recipe: Recipe) -> list[PackagesFilter]:
             module_name="mamba_press.filter",
             class_suffix="PackagesFilter",
             source=recipe.source,
+            wheel_split=wheel_split,
         )  # type: ignore[misc]
         for e in entries
     ]
@@ -102,7 +103,9 @@ def make_filter_files_default_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_filter_files(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[FilesFilter]:
+def make_filter_files(
+    recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
+) -> list[FilesFilter]:
     """Import and instantiate required files filters."""
     entries = make_filter_files_default_config()
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.files != Default:
@@ -119,6 +122,7 @@ def make_filter_files(recipe: Recipe, interpolation_context: Mapping[str, str]) 
             module_name="mamba_press.filter",
             class_suffix="FilesFilter",
             source=recipe.source,
+            wheel_split=wheel_split,
         )  # type: ignore[misc]
         for e in entries
     ]
@@ -139,7 +143,9 @@ def make_transform_path_default_config() -> list[NamedDynamicEntry]:
     ]
 
 
-def make_transform_paths(recipe: Recipe, interpolation_context: Mapping[str, str]) -> list[PathTransform]:
+def make_transform_paths(
+    recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
+) -> list[PathTransform]:
     """Import and instantiate required path transforms."""
     entries = make_transform_path_default_config()
     if (
@@ -160,6 +166,7 @@ def make_transform_paths(recipe: Recipe, interpolation_context: Mapping[str, str
             module_name="mamba_press.transform",
             class_suffix="PathTransform",
             source=recipe.source,
+            wheel_split=wheel_split,
         )  # type: ignore[misc]
         for e in entries
     ]

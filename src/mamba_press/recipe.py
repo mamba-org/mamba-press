@@ -10,6 +10,7 @@ import cattrs.strategies
 import libmambapy as mamba
 
 import mamba_press.utils
+from mamba_press.platform import WheelPlatformSplit
 from mamba_press.typing import Default as Default
 from mamba_press.typing import DefaultType as DefaultType
 from mamba_press.typing import DynamicEntry as DynamicEntry
@@ -174,11 +175,13 @@ class RecipeV0:
 Recipe = RecipeV0
 
 
-class SourceConfigurable(Protocol):
+class FromRecipeConfig(Protocol):
     """An object that can be created from a simple configuration and recipe source info."""
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "SourceConfigurable":
+    def from_config(
+        cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit
+    ) -> "FromRecipeConfig":
         """Construct from simple parameters typically found in configurations."""
         ...
 

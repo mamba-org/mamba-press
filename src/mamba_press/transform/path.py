@@ -3,13 +3,14 @@ import pathlib
 from typing import Self
 
 import mamba_press.recipe
-from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
+from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
 
 from .protocol import PathTransform
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ExplicitPathTransform(PathTransform, SourceConfigurable):
+class ExplicitPathTransform(PathTransform, FromRecipeConfig):
     """Relocate file and folder from the given mapping.
 
     Search for the most specific mapping to apply at each transformation.
@@ -18,7 +19,7 @@ class ExplicitPathTransform(PathTransform, SourceConfigurable):
     mapping: dict[pathlib.PurePath, pathlib.PurePath]
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> Self:
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
         mapping: dict[pathlib.PurePath, pathlib.PurePath] = {}
         for entry in mamba_press.recipe.get_param_as("mapping", params=params, type_=list):

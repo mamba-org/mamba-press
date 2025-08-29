@@ -9,6 +9,7 @@ def test_unix_filter_from_config() -> None:
     filter = mamba_press.filter.UnixGlobFilesFilter.from_config(
         {"patterns": ["file.py", "dir/bar"]},
         source=mock.MagicMock(),
+        wheel_split=mock.MagicMock(),
     )
 
     assert len(filter.patterns) == 2

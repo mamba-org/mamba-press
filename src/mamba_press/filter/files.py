@@ -5,13 +5,13 @@ import pathlib
 import mamba_press.platform
 import mamba_press.recipe
 from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
+from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
 
 from .protocol import FilesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class UnixGlobFilesFilter(FilesFilter, SourceConfigurable):
+class UnixGlobFilesFilter(FilesFilter, FromRecipeConfig):
     """Filter files from the wheel.
 
     The patterns are applied individually to every file path (as a relative to the prefix root).
@@ -23,7 +23,9 @@ class UnixGlobFilesFilter(FilesFilter, SourceConfigurable):
     exclude: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> "UnixGlobFilesFilter":
+    def from_config(
+        cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit
+    ) -> "UnixGlobFilesFilter":
         """Construct from simple parameters typically found in configurations."""
         patterns = mamba_press.recipe.get_param_as("patterns", params=params, type_=list)
         params.pop("patterns")

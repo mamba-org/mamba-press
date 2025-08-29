@@ -10,6 +10,7 @@ def test_package_filter_from_config() -> None:
     filter = mamba_press.filter.ByNamePackagesFilter.from_config(
         {"to_prune": ["foo>1"]},
         source=mock.MagicMock(),
+        wheel_split=mock.MagicMock(),
     )
 
     assert len(filter.to_prune) == 1
@@ -55,6 +56,7 @@ def test_python_filter_from_config() -> None:
     filter = mamba_press.filter.PythonDependenciesPackagesFilter.from_config(
         {"python_packages": ["foo>1"], "recursive": False},
         source=mock.MagicMock(),
+        wheel_split=mock.MagicMock(),
     )
 
     assert len(filter.python_packages) == 1

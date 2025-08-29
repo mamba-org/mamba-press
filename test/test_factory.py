@@ -30,18 +30,21 @@ def test_interpolate_params() -> None:
 def test_make_plugin() -> None:
     """Plugin work in standard and module mode."""
     source = unittest.mock.MagicMock()
+    wheel_split = unittest.mock.MagicMock()
 
     plugin1 = mamba_press.factory.make_plugin(
         {"by-name": {"to_prune": ["foo"]}},
         module_name="mamba_press.filter",
         class_suffix="PackagesFilter",
         source=source,
+        wheel_split=wheel_split,
     )
 
     plugin2 = mamba_press.factory.make_plugin(
         {"mamba_press.filter.ByNamePackagesFilter": {"to_prune": ["foo"]}},
         module_name="unused",
         source=source,
+        wheel_split=wheel_split,
     )
 
     # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
@@ -57,7 +60,7 @@ def test_make_packages_filter() -> None:
         build=Default,
     )
 
-    plugins = mamba_press.factory.make_filter_packages(recipe)
+    plugins = mamba_press.factory.make_filter_packages(recipe, wheel_split=unittest.mock.MagicMock())
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.filter.ByNamePackagesFilter)
     # FIXME Cheap comparison since MatchSpec currently does not have equality comparison
@@ -73,7 +76,9 @@ def test_make_files_filter() -> None:
         build=Default,
     )
 
-    plugins = mamba_press.factory.make_filter_files(recipe, {"site_packages": "TEST_STR"})
+    plugins = mamba_press.factory.make_filter_files(
+        recipe, interpolation_context={"site_packages": "TEST_STR"}, wheel_split=unittest.mock.MagicMock()
+    )
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.filter.UnixGlobFilesFilter)
     # Test interpolation has been applied
@@ -90,7 +95,9 @@ def test_make_path_transforms() -> None:
     )
 
     plugins = mamba_press.factory.make_transform_paths(
-        recipe, {"site_packages": "TEST_STR1", "package_name": "TEST_STR2"}
+        recipe,
+        interpolation_context={"site_packages": "TEST_STR1", "package_name": "TEST_STR2"},
+        wheel_split=unittest.mock.MagicMock(),
     )
     assert len(plugins) == 1
     assert isinstance(plugins[0], mamba_press.transform.ExplicitPathTransform)

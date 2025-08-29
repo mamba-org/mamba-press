@@ -5,13 +5,14 @@ import libmambapy as mamba
 
 import mamba_press.recipe
 import mamba_press.solution_utils
-from mamba_press.recipe import DynamicParams, Source, SourceConfigurable
+from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
 
 from .protocol import PackagesFilter
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ByNamePackagesFilter(PackagesFilter, SourceConfigurable):
+class ByNamePackagesFilter(PackagesFilter, FromRecipeConfig):
     """Remove packages from the the final wheel.
 
     This is used for removing dependencies of a package that we know should not be part of the
@@ -27,7 +28,7 @@ class ByNamePackagesFilter(PackagesFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> Self:
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
         to_prune = [
             mamba.specs.MatchSpec.parse(ms)
@@ -52,7 +53,7 @@ class ByNamePackagesFilter(PackagesFilter, SourceConfigurable):
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PythonDependenciesPackagesFilter(PackagesFilter, SourceConfigurable):
+class PythonDependenciesPackagesFilter(PackagesFilter, FromRecipeConfig):
     """Remove Python and all Python packages except the ones requested."""
 
     requested_packages: list[mamba.specs.MatchSpec]
@@ -65,7 +66,7 @@ class PythonDependenciesPackagesFilter(PackagesFilter, SourceConfigurable):
     recursive: bool = True
 
     @classmethod
-    def from_config(cls, params: DynamicParams, source: Source) -> Self:
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
         return cls(
             requested_packages=source.packages,

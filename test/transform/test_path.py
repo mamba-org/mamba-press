@@ -9,6 +9,7 @@ def test_explicit_transform_from_config() -> None:
     transform = mamba_press.transform.ExplicitPathTransform.from_config(
         {"mapping": [{"from": "a", "to": "b"}, {"from": "c", "to": "d"}]},
         source=mock.MagicMock(),
+        wheel_split=mock.MagicMock(),
     )
 
     assert transform.mapping == {
