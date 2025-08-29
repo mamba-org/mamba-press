@@ -6,47 +6,7 @@ import pathlib
 import typing
 from collections.abc import Iterable, Mapping
 
-import lief
-
 import mamba_press
-from mamba_press.platform import WheelPlatformSplit
-from mamba_press.transform.dynlib.abc import DynamicLibRelocate
-
-
-def make_relocator(
-    wheel_split: WheelPlatformSplit,
-) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
-    """Create platform specific DynamicLibRelocate."""
-    if wheel_split.is_macos:
-        return mamba_press.transform.dynlib.MachODynamicLibRelocate(
-            mamba_press.filter.UnixGlobFilesFilter(
-                [
-                    # https://github.com/conda/conda-build/blob/main/conda_build/post.py
-                    "/opt/X11/*.dylib",
-                    "/usr/lib/libcrypto.0.9.8.dylib",
-                    "/usr/lib/libobjc.A.dylib",
-                    "/System/Library/Frameworks/*.framework/*",
-                    "/usr/lib/libSystem.B.dylib",
-                    # Common low-level DSO whitelist from
-                    "/usr/lib/libc++abi.dylib",
-                    "/usr/lib/libresolv*.dylib",
-                ],
-                exclude=False,
-            )
-        )
-    if wheel_split.is_manylinux:
-        return mamba_press.transform.dynlib.ElfDynamicLibRelocate(
-            mamba_press.filter.CombinedFilesFilter(
-                [
-                    mamba_press.filter.ManyLinuxWhitelist(wheel_split),
-                    # Sometimes this is marked as explicitly needed
-                    mamba_press.filter.UnixGlobFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
-                ],
-                all=False,
-            )
-        )
-
-    raise ValueError(f'Invalid or unsupported platform "{wheel_split}"')
 
 
 def read_env_files(path: pathlib.Path) -> Iterable[pathlib.Path]:
@@ -100,11 +60,13 @@ def main(
 
     path_transforms = mamba_press.factory.make_transform_paths(recipe, context)
 
+    dynlib_transform = mamba_press.factory.make_transform_dynlib(recipe, wheel_split, context)
+
     mamba_press.execution.create_working_wheel(
         working_artifacts=working_artifacts,
         files_filters=files_filters,
         path_transforms=path_transforms,
-        relocator=make_relocator(wheel_split),  # type: ignore[misc]
+        relocator=dynlib_transform,  # type: ignore[misc]
     )
 
     mamba_press.execution.pack_wheel(
