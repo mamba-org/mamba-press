@@ -2,11 +2,14 @@ import dataclasses
 import logging
 import os
 import pathlib
-from typing import Callable
+from typing import Callable, Self
 
 import lief
 
+import mamba_press.filter.files
 from mamba_press.filter.protocol import FilesFilter
+from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
 
 from . import utils
 from .abc import DynamicLibRelocate
@@ -111,11 +114,28 @@ def relocate_bin(
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
 
 
+def make_default_library_whitelist(wheel_split: WheelPlatformSplit) -> FilesFilter:
+    """Return the default library allowed to link with on Linux, as a filter."""
+    return mamba_press.filter.CombinedFilesFilter(
+        [
+            mamba_press.filter.ManyLinuxWhitelist(wheel_split),
+            # Sometimes this is marked as explicitly needed
+            mamba_press.filter.UnixGlobFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
+        ],
+        all=False,
+    )
+
+
 @dataclasses.dataclass
-class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary]):
+class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary], FromRecipeConfig):
     """Relocate Mach-O dynamic libraries RPATHs."""
 
     library_whitelist: FilesFilter
+
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
+        """Construct from simple parameters typically found in configurations."""
+        return cls(library_whitelist=make_default_library_whitelist(wheel_split))
 
     @classmethod
     def binary_type(self) -> type[lief.ELF.Binary]:

@@ -3,11 +3,14 @@ import logging
 import os
 import pathlib
 import subprocess
-from typing import Callable, Iterable, cast, override
+from typing import Callable, Iterable, Self, cast, override
 
 import lief
 
+import mamba_press.filter.files
 from mamba_press.filter.protocol import FilesFilter
+from mamba_press.platform import WheelPlatformSplit
+from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
 
 from . import utils
 from .abc import DynamicLibRelocate
@@ -140,11 +143,34 @@ def codesign(path: str) -> None:
     subprocess.run(cmd, capture_output=True, check=True, env={})
 
 
+def make_default_library_whitelist() -> FilesFilter:
+    """Return the default library allowed to link with on MacOS, as a filter."""
+    return mamba_press.filter.UnixGlobFilesFilter(
+        [
+            # https://github.com/conda/conda-build/blob/main/conda_build/post.py
+            "/opt/X11/*.dylib",
+            "/usr/lib/libcrypto.0.9.8.dylib",
+            "/usr/lib/libobjc.A.dylib",
+            "/System/Library/Frameworks/*.framework/*",
+            "/usr/lib/libSystem.B.dylib",
+            # Common low-level DSO whitelist from
+            "/usr/lib/libc++abi.dylib",
+            "/usr/lib/libresolv*.dylib",
+        ],
+        exclude=False,
+    )
+
+
 @dataclasses.dataclass
-class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
+class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary], FromRecipeConfig):
     """Relocate Mach-O dynamic libraries RPATHs."""
 
-    library_whitelist: FilesFilter
+    library_whitelist: FilesFilter = dataclasses.field(default_factory=make_default_library_whitelist)
+
+    @classmethod
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
+        """Construct from simple parameters typically found in configurations."""
+        return cls(**params)  # type: ignore[arg-type]
 
     @classmethod
     def binary_type(self) -> type[lief.MachO.Binary]:

@@ -9,7 +9,7 @@ import mamba_press.transform.dynlib
 import mamba_press.utils
 from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import NamedDynamicEntry, Recipe
+from mamba_press.recipe import FromRecipeConfig, NamedDynamicEntry, Recipe
 from mamba_press.transform.dynlib.abc import DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
 from mamba_press.typing import Default
@@ -176,33 +176,13 @@ def make_transform_dynlib(
     recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
 ) -> DynamicLibRelocate[lief.MachO.Binary] | DynamicLibRelocate[lief.ELF.Binary]:
     """Import and instantiate required dynlib transforms."""
+    klass: FromRecipeConfig | None = None
     if wheel_split.is_macos:
-        return mamba_press.transform.dynlib.MachODynamicLibRelocate(
-            mamba_press.filter.UnixGlobFilesFilter(
-                [
-                    # https://github.com/conda/conda-build/blob/main/conda_build/post.py
-                    "/opt/X11/*.dylib",
-                    "/usr/lib/libcrypto.0.9.8.dylib",
-                    "/usr/lib/libobjc.A.dylib",
-                    "/System/Library/Frameworks/*.framework/*",
-                    "/usr/lib/libSystem.B.dylib",
-                    # Common low-level DSO whitelist from
-                    "/usr/lib/libc++abi.dylib",
-                    "/usr/lib/libresolv*.dylib",
-                ],
-                exclude=False,
-            )
-        )
-    if wheel_split.is_manylinux:
-        return mamba_press.transform.dynlib.ElfDynamicLibRelocate(
-            mamba_press.filter.CombinedFilesFilter(
-                [
-                    mamba_press.filter.ManyLinuxWhitelist(wheel_split),
-                    # Sometimes this is marked as explicitly needed
-                    mamba_press.filter.UnixGlobFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
-                ],
-                all=False,
-            )
-        )
+        klass = mamba_press.transform.dynlib.MachODynamicLibRelocate
+    elif wheel_split.is_manylinux:
+        klass = mamba_press.transform.dynlib.ElfDynamicLibRelocate
+
+    if klass is not None:
+        return klass.from_config({}, source=recipe.source, wheel_split=wheel_split)  # type: ignore[return-value]
 
     raise ValueError(f'Invalid or unsupported platform "{wheel_split}"')
