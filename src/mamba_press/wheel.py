@@ -1,6 +1,6 @@
 import dataclasses
 import io
-from typing import TextIO
+from typing import Self, TextIO
 
 
 @dataclasses.dataclass
@@ -25,12 +25,12 @@ class Wheel:
     build: str | None = None
 
     @classmethod
-    def from_wheel_file(cls, content: str) -> "Wheel":
+    def from_wheel_file(cls, content: str) -> Self:
         """Parse WHEEL metadata from file content string."""
         return cls.read(io.StringIO(content))
 
     @classmethod
-    def read(cls, file: TextIO) -> "Wheel":
+    def read(cls, file: TextIO) -> Self:
         """Read WHEEL metadata from a text IO stream."""
         data: dict[str, str] = {}
         tags: list[str] = []
@@ -141,12 +141,12 @@ class Metadata:
     dynamic: list[str] = dataclasses.field(default_factory=list)
 
     @classmethod
-    def from_metadata_file(cls, content: str) -> "Metadata":
+    def from_metadata_file(cls, content: str) -> Self:
         """Parse METADATA from file content string."""
         return cls.read(io.StringIO(content))
 
     @classmethod
-    def read(cls, file: TextIO) -> "Metadata":
+    def read(cls, file: TextIO) -> Self:
         """Read METADATA from a text IO stream."""
         data: dict[str, str] = {}
         list_data: dict[str, list[str]] = {}

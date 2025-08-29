@@ -1,6 +1,7 @@
 import dataclasses
 import fnmatch
 import pathlib
+from typing import Self
 
 import mamba_press.platform
 import mamba_press.recipe
@@ -23,14 +24,12 @@ class UnixGlobFilesFilter(FilesFilter, FromRecipeConfig):
     exclude: bool = True
 
     @classmethod
-    def from_config(
-        cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit
-    ) -> "UnixGlobFilesFilter":
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
         patterns = mamba_press.recipe.get_param_as("patterns", params=params, type_=list)
         params.pop("patterns")
 
-        return UnixGlobFilesFilter(
+        return cls(
             patterns=patterns,
             **params,  # type: ignore[arg-type]
         )

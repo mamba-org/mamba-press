@@ -2,7 +2,7 @@ import dataclasses
 import types
 import typing
 from collections.abc import Mapping
-from typing import Literal, Protocol, TypeAlias
+from typing import Literal, Protocol, Self, TypeAlias
 
 import cattrs
 import cattrs.preconf.pyyaml
@@ -139,8 +139,8 @@ class RecipeV0:
     build: Build | DefaultType = Default
     version: Literal[0] = 0  # Union tag for disambiuation
 
-    @staticmethod
-    def parse_yaml(yaml: str) -> "RecipeV0":
+    @classmethod
+    def parse_yaml(cls, yaml: str) -> Self:
         """Parse the yaml recipe data."""
         converter = cattrs.preconf.pyyaml.make_converter()
 
@@ -169,7 +169,7 @@ class RecipeV0:
 
         converter.register_structure_hook(_parse_ms)
 
-        return converter.loads(yaml, RecipeV0)
+        return converter.loads(yaml, cls)
 
 
 Recipe = RecipeV0
@@ -179,9 +179,7 @@ class FromRecipeConfig(Protocol):
     """An object that can be created from a simple configuration and recipe source info."""
 
     @classmethod
-    def from_config(
-        cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit
-    ) -> "FromRecipeConfig":
+    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
         ...
 

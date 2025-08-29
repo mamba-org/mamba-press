@@ -1,7 +1,7 @@
 import dataclasses
 import re
 import sys
-from typing import Final
+from typing import Final, Self
 
 import libmambapy as mamba
 
@@ -27,14 +27,14 @@ class WheelPlatformSplit:
     minor: str
     arch: str
 
-    @staticmethod
-    def parse(platform: str) -> "WheelPlatformSplit":
+    @classmethod
+    def parse(cls, platform: str) -> Self:
         """Split a wheel platform tag."""
         match = PLATFORM_WHEEL_RE.fullmatch(platform)
         if match is None:
             raise ValueError(f'Unknown platform tag "{platform}"')
 
-        return WheelPlatformSplit(**{k: v.lower() for k, v in match.groupdict().items()})
+        return cls(**{k: v.lower() for k, v in match.groupdict().items()})
 
     @property
     def version(self) -> str:
