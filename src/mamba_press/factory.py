@@ -128,7 +128,7 @@ def make_filter_files(
     ]
 
 
-def make_transform_path_default_config() -> list[NamedDynamicEntry]:
+def make_transform_paths_default_config() -> list[NamedDynamicEntry]:
     """Return the default path trnasform config."""
     return [
         {
@@ -147,7 +147,7 @@ def make_transform_paths(
     recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
 ) -> list[PathTransform]:
     """Import and instantiate required path transforms."""
-    entries = make_transform_path_default_config()
+    entries = make_transform_paths_default_config()
     if (
         recipe.build != Default
         and recipe.build.transform != Default

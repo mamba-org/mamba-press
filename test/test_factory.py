@@ -1,6 +1,8 @@
+import pathlib
 import unittest.mock
 
 import libmambapy as mamba
+import pytest
 
 import mamba_press
 from mamba_press.typing import Default, DynamicEntry
@@ -52,7 +54,7 @@ def test_make_plugin() -> None:
     assert plugin1.to_prune[0] == plugin2.to_prune[0]  # type: ignore[attr-defined]
 
 
-def test_make_packages_filter() -> None:
+def test_make_filter_packages_default() -> None:
     """The default packages filter is properly created."""
     source = unittest.mock.MagicMock()
     recipe = mamba_press.Recipe(
@@ -70,7 +72,7 @@ def test_make_packages_filter() -> None:
     ]
 
 
-def test_make_files_filter() -> None:
+def test_make_filer_files_default() -> None:
     """The default files filter is properly created."""
     source = unittest.mock.MagicMock()
     recipe = mamba_press.Recipe(
@@ -88,7 +90,7 @@ def test_make_files_filter() -> None:
     assert any("TEST" in p for p in plugins[0].patterns)
 
 
-def test_make_path_transforms() -> None:
+def test_make_transform_paths_default() -> None:
     """The default path transforms is properly created."""
     source = unittest.mock.MagicMock()
     recipe = mamba_press.Recipe(
@@ -107,3 +109,61 @@ def test_make_path_transforms() -> None:
     # Test interpolation has been applied
     assert any("TEST_STR1" in str(p) for p in plugins[0].mapping.keys())
     assert any("TEST_STR2" in str(p) for p in plugins[0].mapping.values())
+
+
+@pytest.mark.parametrize(
+    "wheel_split",
+    [
+        mamba_press.platform.WheelPlatformSplit.parse("macosx_11_1_x86_64"),
+        mamba_press.platform.WheelPlatformSplit.parse("manylinux_2_17_x86_64"),
+    ],
+)
+def test_make_transform_dynlib_default(wheel_split: mamba_press.platform.WheelPlatformSplit) -> None:
+    """The default dynlib transforms is properly created."""
+    recipe = mamba_press.Recipe(
+        source=unittest.mock.MagicMock(),
+        target=unittest.mock.MagicMock(),
+        build=Default,
+    )
+
+    dynlib = mamba_press.factory.make_transform_dynlib(
+        recipe,
+        interpolation_context={"site_packages": "TEST_STR1", "package_name": "TEST_STR2"},
+        wheel_split=wheel_split,
+    )
+    assert isinstance(dynlib, mamba_press.transform.dynlib.DynamicLibRelocate)
+
+
+@pytest.mark.parametrize(
+    "wheel_split",
+    [
+        mamba_press.platform.WheelPlatformSplit.parse("macosx_11_1_x86_64"),
+        mamba_press.platform.WheelPlatformSplit.parse("manylinux_2_17_x86_64"),
+    ],
+)
+def test_make_transform_dynlib(wheel_split: mamba_press.platform.WheelPlatformSplit) -> None:
+    """The dynlib transform argument are properly parsed and interpolated."""
+    recipe = mamba_press.Recipe(
+        source=unittest.mock.MagicMock(),
+        target=unittest.mock.MagicMock(),
+        build=mamba_press.recipe.Build(
+            transform=mamba_press.recipe.Transform(
+                dynlib={
+                    "add-rpaths": ["${{ foo }}/test1.so", "bar/test2.so"],
+                    "remove-rpaths": ["baz/*.so"],
+                }
+            ),
+        ),
+    )
+
+    dynlib = mamba_press.factory.make_transform_dynlib(
+        recipe,
+        interpolation_context={"foo": "TEST_STR1"},
+        wheel_split=wheel_split,
+    )
+    assert isinstance(dynlib, mamba_press.transform.dynlib.DynamicLibRelocate)
+    assert hasattr(dynlib, "overrides")
+    assert len(dynlib.overrides.add_rpaths) == 2
+    assert dynlib.overrides.add_rpaths["test1.so"] == pathlib.PurePath("TEST_STR1/test1.so")
+    assert dynlib.overrides.remove_rpaths.filter_file("baz/lib.so")
+    assert not dynlib.overrides.remove_rpaths.filter_file("not/lib.so")

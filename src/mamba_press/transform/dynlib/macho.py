@@ -103,6 +103,10 @@ def relocate_bin(
         if overrides.whitelist_rpaths.filter_file(pathlib.PurePath(cmd_name)):
             __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {cmd.name}")
             continue
+        if overrides.remove_rpaths.filter_file(pathlib.PurePath(cmd_name)):
+            bin.remove(cmd)
+            __logger__.info(f"{bin_path_relative}: Removing dependency {cmd_name}")
+            continue
 
         # Find where the dependency is pointing to
         dep_path = resolve_load_path(cmd_name, origin=origin_path, rpaths=resolved_rpaths)
@@ -168,7 +172,7 @@ class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary]):
     def write_binary(self, bin: lief.MachO.Binary, path: pathlib.Path) -> None:
         """Write the binary to file and codesign it."""
         super().write_binary(bin, path)
-        __logger__.info(f"codesign {path}")
+        __logger__.debug(f"Codesign {path.name}")
         codesign(str(path.resolve()))
 
     def relocate_binary(

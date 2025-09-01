@@ -52,7 +52,7 @@ def lib_name(lib: lief.ELF.Binary) -> str | None:
     return None
 
 
-def relocate_bin(
+def relocate_bin(  # noqa: C901
     bin: lief.ELF.Binary,
     bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
@@ -82,6 +82,10 @@ def relocate_bin(
 
         if overrides.whitelist_rpaths.filter_file(pathlib.PurePath(dep_name)):
             __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {dep_name}")
+            continue
+        if overrides.remove_rpaths.filter_file(pathlib.PurePath(dep_name)):
+            bin.remove(dep)
+            __logger__.info(f"{bin_path_relative}: Removing dependency {dep_name}")
             continue
 
         # Find where the dependency is pointing to

@@ -58,21 +58,36 @@ class DynamicLibRelocateParams(FromRecipeConfig):
     add_rpaths: RPATHs to add or modify when missing. When the filename provided as key is
         missing, replace it with the given path value. If the given path is relative, it
         is interpreted as relative to the created wheel root.
+    remove_rpaths: RPATHs to always remove from any libraries. Use when wrongfuly linking with a
+        library or when linking with a library that will already be loaded (e.g. `libpython`).
 
     """
 
     whitelist_rpaths: FilesFilter = mamba_press.filter.NoFilesFilter()
     add_rpaths: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
+    remove_rpaths: FilesFilter = mamba_press.filter.NoFilesFilter()
 
     @classmethod
     def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
-        add_rpath_raw: list[str] = mamba_press.recipe.get_param_as(
-            "add-rpath", params=params, type_=list, default=[]
+        add_rpaths_raw: list[str] = mamba_press.recipe.get_param_as(
+            "add-rpaths", params=params, type_=list, default=[]
         )
-        add_rpaths = {(p := pathlib.PurePath(path)).name: p for path in add_rpath_raw}
+        add_rpaths = {(p := pathlib.PurePath(path)).name: p for path in add_rpaths_raw}
+
+        remove_rpaths_raw = params.get("remove-rpaths", None)
+        remove_rpaths: FilesFilter = mamba_press.filter.NoFilesFilter()
+        if remove_rpaths_raw is not None:
+            # Pragmatic we make it a glob, but we could also call the plugin factory
+            # to dispatch different type of filters
+            remove_rpaths = mamba_press.filter.UnixGlobFilesFilter.from_config(
+                {"patterns": remove_rpaths_raw, "exclude": False},
+                source=source,
+                wheel_split=wheel_split,
+            )
 
         return cls(
             add_rpaths=add_rpaths,
             whitelist_rpaths=make_default_library_whitelist(wheel_split),
+            remove_rpaths=remove_rpaths,
         )

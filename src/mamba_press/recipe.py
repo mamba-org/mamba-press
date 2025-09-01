@@ -35,7 +35,9 @@ def interpolate_params(params: DynamicEntry, context: Mapping[str, str]) -> Dyna
     return params
 
 
-def get_param_as[T](key: str, params: DynamicParams, type_: type[T], default: DefaultType | T = Default) -> T:
+def get_param_as[T, U](
+    key: str, params: DynamicParams, type_: type[T], default: DefaultType | U = Default
+) -> T | U:
     """Return the parameter in the correct type of raise an exception."""
     if key not in params:
         if default != Default:
