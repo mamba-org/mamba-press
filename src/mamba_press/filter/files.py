@@ -57,6 +57,24 @@ class CombinedFilesFilter(FilesFilter):
         return any(f.filter_file(path) for f in self.filters)
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class AllFilesFilter(FilesFilter):
+    """A filter that let everything pass through."""
+
+    def filter_file(self, path: pathlib.PurePath) -> bool:
+        """Return True."""
+        return True
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class NoFilesFilter(FilesFilter):
+    """A filter that let nothing pass through."""
+
+    def filter_file(self, path: pathlib.PurePath) -> bool:
+        """Return False."""
+        return False
+
+
 class ManyLinuxWhitelist(FilesFilter):
     """Whitelist library allowed by manylinux spec."""
 

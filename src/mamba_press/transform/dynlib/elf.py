@@ -2,18 +2,13 @@ import dataclasses
 import logging
 import os
 import pathlib
-from typing import Callable, Self
+from typing import Callable
 
 import lief
 
-import mamba_press.filter.files
-import mamba_press.recipe
-from mamba_press.filter.protocol import FilesFilter
-from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import DynamicParams, FromRecipeConfig, Source
-
 from . import utils
 from .abc import DynamicLibRelocate
+from .params import DynamicLibRelocateParams
 
 __logger__ = logging.getLogger(__name__)
 
@@ -62,8 +57,7 @@ def relocate_bin(
     bin_path: pathlib.Path,
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
-    library_whitelist: FilesFilter,
-    add_rpaths: dict[str, pathlib.PurePath],
+    overrides: DynamicLibRelocateParams,
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
     bin_path_relative = bin_path.relative_to(prefix_path)
@@ -86,7 +80,7 @@ def relocate_bin(
     for dep in dynamic_libraries(bin):
         dep_name = str(dep.name)
 
-        if library_whitelist.filter_file(pathlib.PurePath(dep_name)):
+        if overrides.whitelist_rpaths.filter_file(pathlib.PurePath(dep_name)):
             __logger__.debug(f"{bin_path_relative}: Whitelisting dependency {dep_name}")
             continue
 
@@ -97,8 +91,8 @@ def relocate_bin(
             # Note that this may not have the proper SONAME associated with path_transform, but since
             # the filename is not in the RPATH, we can base the changes on it.
             new_dep_path = path_transform(dep_path)
-        elif dep_name in add_rpaths:
-            new_dep_path = pathlib.Path(add_rpaths[dep_name])
+        elif (r := overrides.add_rpaths.get(dep_name, None)) is not None:
+            new_dep_path = pathlib.Path(r)
             __logger__.debug(f"""Library "{dep_name}" is configured to "{new_dep_path}".""")
         else:
             __logger__.warning(f"""Cannot find library "{dep_name}" in "{bin_path}".""")
@@ -122,37 +116,11 @@ def relocate_bin(
             __logger__.info(f"{bin_path_relative}: Adding RPATH {new_rpath}")
 
 
-def make_default_library_whitelist(wheel_split: WheelPlatformSplit) -> FilesFilter:
-    """Return the default library allowed to link with on Linux, as a filter."""
-    return mamba_press.filter.CombinedFilesFilter(
-        [
-            mamba_press.filter.ManyLinuxWhitelist(wheel_split),
-            # Sometimes this is marked as explicitly needed
-            mamba_press.filter.UnixGlobFilesFilter(["*ld-linux-x86-64.so*"], exclude=False),
-        ],
-        all=False,
-    )
-
-
 @dataclasses.dataclass
-class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary], FromRecipeConfig):
+class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary]):
     """Relocate Mach-O dynamic libraries RPATHs."""
 
-    library_whitelist: FilesFilter
-    add_rpath: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
-
-    @classmethod
-    def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
-        """Construct from simple parameters typically found in configurations."""
-        add_rpath_str: list[str] = mamba_press.recipe.get_param_as(
-            "add-rpath", params=params, type_=list, default=[]
-        )
-        add_rpath_map = {(p := pathlib.PurePath(path)).name: p for path in add_rpath_str}
-
-        return cls(
-            library_whitelist=make_default_library_whitelist(wheel_split),
-            add_rpath=add_rpath_map,
-        )
+    overrides: DynamicLibRelocateParams
 
     @classmethod
     def binary_type(self) -> type[lief.ELF.Binary]:
@@ -180,6 +148,5 @@ class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary], FromRecipeConfi
             bin_path=data_path,
             prefix_path=prefix_path,
             path_transform=path_transform,
-            library_whitelist=self.library_whitelist,
-            add_rpaths=self.add_rpath,
+            overrides=self.overrides,
         )
