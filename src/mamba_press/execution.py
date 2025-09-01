@@ -88,7 +88,10 @@ def compute_solution(
     )
 
     __logger__.info("Solving package requirements")
-    request = mamba_press.packages.make_request(source.packages, python=source.python)
+    request = mamba_press.packages.make_request(
+        source.packages,
+        constraints=[source.python] + source.constraints,
+    )
     solution = mamba_press.packages.solve_for_packages(
         request=request,
         database=database,

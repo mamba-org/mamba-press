@@ -52,10 +52,22 @@ def get_param_as[T, U](
 
 @dataclasses.dataclass
 class Source:
-    """Specify what Conda packages to get."""
+    """Specify what Conda packages to get.
+
+    Attributes:
+        packages: List of ``MatchSpec`` to get the package.
+            Typically set the full version but may also set the build string to select a variant.
+            Other packages can be added to ensure they are not pruned.
+        python: The python to use as a full ``MatchSpec`` (including the ``python`` name).
+        constraints: Additional constraints when resolving the environment.
+            For instance this can pin dependencies which shared library will be found in
+            another wheel.
+
+    """
 
     packages: list[mamba.specs.MatchSpec]
     python: mamba.specs.MatchSpec
+    constraints: list[mamba.specs.MatchSpec] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
