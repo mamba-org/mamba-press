@@ -58,3 +58,32 @@ def test_recipe_parse_filter_packages() -> None:
     assert recipe.build.filter != mamba_press.recipe.Default
     assert isinstance(recipe.build.filter.packages, list)
     assert len(recipe.build.filter.packages) == 1
+
+
+def test_recipe_parse_filter_default() -> None:
+    """Parse recipe from yaml format, with explicit default."""
+    yaml = """
+        version: 0
+        source:
+          packages:
+            - libmamba
+          python: "python==3.13"
+        target:
+          name: libmamba
+          platform:
+            os: manylinux
+            version: "2.17"
+            arch: x86_64
+        build:
+          filter:
+             files:
+               - default
+
+    """
+
+    recipe = mamba_press.recipe.RecipeV0.parse_yaml(yaml)
+    assert recipe.build != mamba_press.recipe.Default
+    assert recipe.build.filter != mamba_press.recipe.Default
+    assert isinstance(recipe.build.filter.files, list)
+    assert len(recipe.build.filter.files) == 1
+    assert recipe.build.filter.files[0] == "default"

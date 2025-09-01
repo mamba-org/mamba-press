@@ -22,6 +22,8 @@ DynamicParams: TypeAlias = dict[str, DynamicEntry]
 # This is used for separating a dynamic class name from its parameters.
 NamedDynamicEntry: TypeAlias = dict[str, DynamicParams]
 
+DefaultString = Literal["default"]
+
 
 def interpolate_params(params: DynamicEntry, context: Mapping[str, str]) -> DynamicEntry:
     """Recursively interpolate all strings in a dynamic entry."""
@@ -113,7 +115,7 @@ class Filter:
     """
 
     packages: list[NamedDynamicEntry] | DefaultType = Default
-    files: list[NamedDynamicEntry] | DefaultType = Default
+    files: list[NamedDynamicEntry | DefaultString] | DefaultType = Default
 
 
 @dataclasses.dataclass

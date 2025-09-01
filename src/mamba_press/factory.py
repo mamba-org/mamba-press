@@ -1,4 +1,5 @@
 import importlib
+import typing
 from collections.abc import Mapping
 
 import lief
@@ -9,10 +10,16 @@ import mamba_press.transform.dynlib
 import mamba_press.utils
 from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import DynamicParams, NamedDynamicEntry, Recipe
+from mamba_press.recipe import DefaultString, DynamicParams, NamedDynamicEntry, Recipe
 from mamba_press.transform.dynlib import DynamicLibRelocate, DynamicLibRelocateParams
 from mamba_press.transform.protocol import PathTransform
 from mamba_press.typing import Default
+
+
+def __is_default_str(arg: NamedDynamicEntry | DefaultString) -> bool:
+    default = typing.get_args(mamba_press.recipe.DefaultString)[0]
+    assert isinstance(default, str)
+    return isinstance(arg, str) and (arg == default)
 
 
 def make_plugin(  # type: ignore
@@ -72,44 +79,44 @@ def make_filter_packages(recipe: Recipe, wheel_split: WheelPlatformSplit) -> lis
     ]
 
 
-def make_filter_files_default_config() -> list[NamedDynamicEntry]:
+def make_filter_files_default_config() -> NamedDynamicEntry:
     """Return the default file filter config."""
-    return [
-        {
-            "unix-glob": {
-                "patterns": [
-                    "conda-meta/*",
-                    "etc/conda/*",
-                    "man/*",
-                    "ssl/*",
-                    "share/man/*",
-                    "share/terminfo/*",
-                    "share/locale/*",
-                    "bin/*",
-                    "sbin/*",
-                    "include/*",
-                    "lib/pkgconfig/*",
-                    "lib/cmake/*",
-                    "*.a",
-                    "*.pyc",
-                    "*/__pycache__/*",
-                    "${{ site_packages }}/*.dist-info/RECORD",
-                    "${{ site_packages }}/*.dist-info/INSTALLER",
-                    "${{ site_packages }}/*.dist-info/REQUESTED",
-                ],
-                "exclude": True,
-            }
-        },
-    ]
+    return {
+        "unix-glob": {
+            "patterns": [
+                "conda-meta/*",
+                "etc/conda/*",
+                "man/*",
+                "ssl/*",
+                "share/man/*",
+                "share/terminfo/*",
+                "share/locale/*",
+                "bin/*",
+                "sbin/*",
+                "include/*",
+                "lib/pkgconfig/*",
+                "lib/cmake/*",
+                "*.a",
+                "*.pyc",
+                "*/__pycache__/*",
+                "${{ site_packages }}/*.dist-info/RECORD",
+                "${{ site_packages }}/*.dist-info/INSTALLER",
+                "${{ site_packages }}/*.dist-info/REQUESTED",
+            ],
+            "exclude": True,
+        }
+    }
 
 
 def make_filter_files(
     recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
 ) -> list[FilesFilter]:
     """Import and instantiate required files filters."""
-    entries = make_filter_files_default_config()
+    entries: list[NamedDynamicEntry | DefaultString] = [make_filter_files_default_config()]
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.files != Default:
         entries = recipe.build.filter.files
+
+    entries = [make_filter_files_default_config() if __is_default_str(e) else e for e in entries]
 
     entries = mamba_press.recipe.interpolate_params(
         entries,  # type: ignore[arg-type]
@@ -118,7 +125,7 @@ def make_filter_files(
 
     return [
         make_plugin(
-            e,
+            e,  # type: ignore[arg-type]
             module_name="mamba_press.filter",
             class_suffix="FilesFilter",
             source=recipe.source,

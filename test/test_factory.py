@@ -74,11 +74,29 @@ def test_make_filter_packages_default() -> None:
 
 def test_make_filer_files_default() -> None:
     """The default files filter is properly created."""
-    source = unittest.mock.MagicMock()
     recipe = mamba_press.Recipe(
-        source=source,
+        source=unittest.mock.MagicMock(),
         target=unittest.mock.MagicMock(),
         build=Default,
+    )
+
+    plugins = mamba_press.factory.make_filter_files(
+        recipe, interpolation_context={"site_packages": "TEST_STR"}, wheel_split=unittest.mock.MagicMock()
+    )
+    assert len(plugins) == 1
+    assert isinstance(plugins[0], mamba_press.filter.UnixGlobFilesFilter)
+    # Test interpolation has been applied
+    assert any("TEST" in p for p in plugins[0].patterns)
+
+
+def test_make_filer_files_explicit_default() -> None:
+    """The default keyword is understood."""
+    recipe = mamba_press.Recipe(
+        source=unittest.mock.MagicMock(),
+        target=unittest.mock.MagicMock(),
+        build=mamba_press.recipe.Build(
+            filter=mamba_press.recipe.Filter(files=["default"]),
+        ),
     )
 
     plugins = mamba_press.factory.make_filter_files(
