@@ -81,7 +81,7 @@ def relocate_bin(
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
     library_whitelist: FilesFilter,
-    extra_libraries: dict[str, pathlib.PurePath],
+    add_rpaths: dict[str, pathlib.PurePath],
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
     bin.remove_signature()
@@ -116,8 +116,8 @@ def relocate_bin(
             # Note that this may not have the proper lib ID associated with path_transform, but since
             # the filename is not in the RPATH, we can base the changes on it.
             new_dep_path = path_transform(dep_path)
-        elif cmd_name in extra_libraries:
-            new_dep_path = pathlib.Path(extra_libraries[cmd_name])
+        elif cmd_name in add_rpaths:
+            new_dep_path = pathlib.Path(add_rpaths[cmd_name])
             __logger__.debug(f"""Library "{cmd_name}" is configured to "{new_dep_path}".""")
 
         else:
@@ -174,17 +174,17 @@ class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary], FromRecipeC
     """Relocate Mach-O dynamic libraries RPATHs."""
 
     library_whitelist: FilesFilter = dataclasses.field(default_factory=make_default_library_whitelist)
-    extra_libraries: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
+    add_rpath: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
-        extra_lib_paths: list[str] = mamba_press.recipe.get_param_as(
-            "extra-libraries", params=params, type_=list, default=[]
+        add_rpath_str: list[str] = mamba_press.recipe.get_param_as(
+            "add-rpath", params=params, type_=list, default=[]
         )
-        extra_libs_map = {(p := pathlib.PurePath(path)).name: p for path in extra_lib_paths}
+        add_rpath_map = {(p := pathlib.PurePath(path)).name: p for path in add_rpath_str}
 
-        return cls(extra_libraries=extra_libs_map)
+        return cls(add_rpath=add_rpath_map)
 
     @classmethod
     def binary_type(self) -> type[lief.MachO.Binary]:
@@ -220,5 +220,5 @@ class MachODynamicLibRelocate(DynamicLibRelocate[lief.MachO.Binary], FromRecipeC
             prefix_path=prefix_path,
             path_transform=path_transform,
             library_whitelist=self.library_whitelist,
-            extra_libraries=self.extra_libraries,
+            add_rpaths=self.add_rpath,
         )

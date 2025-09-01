@@ -63,7 +63,7 @@ def relocate_bin(
     prefix_path: pathlib.Path,
     path_transform: Callable[[pathlib.Path], pathlib.Path],
     library_whitelist: FilesFilter,
-    extra_libraries: dict[str, pathlib.PurePath],
+    add_rpaths: dict[str, pathlib.PurePath],
 ) -> None:
     """Relocate the given binary to load dynamic libraries with relative path."""
     bin_path_relative = bin_path.relative_to(prefix_path)
@@ -97,8 +97,8 @@ def relocate_bin(
             # Note that this may not have the proper SONAME associated with path_transform, but since
             # the filename is not in the RPATH, we can base the changes on it.
             new_dep_path = path_transform(dep_path)
-        elif dep_name in extra_libraries:
-            new_dep_path = pathlib.Path(extra_libraries[dep_name])
+        elif dep_name in add_rpaths:
+            new_dep_path = pathlib.Path(add_rpaths[dep_name])
             __logger__.debug(f"""Library "{dep_name}" is configured to "{new_dep_path}".""")
         else:
             __logger__.warning(f"""Cannot find library "{dep_name}" in "{bin_path}".""")
@@ -139,19 +139,19 @@ class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary], FromRecipeConfi
     """Relocate Mach-O dynamic libraries RPATHs."""
 
     library_whitelist: FilesFilter
-    extra_libraries: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
+    add_rpath: dict[str, pathlib.PurePath] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_config(cls, params: DynamicParams, source: Source, wheel_split: WheelPlatformSplit) -> Self:
         """Construct from simple parameters typically found in configurations."""
-        extra_lib_paths: list[str] = mamba_press.recipe.get_param_as(
-            "extra-libraries", params=params, type_=list, default=[]
+        add_rpath_str: list[str] = mamba_press.recipe.get_param_as(
+            "add-rpath", params=params, type_=list, default=[]
         )
-        extra_libs_map = {(p := pathlib.PurePath(path)).name: p for path in extra_lib_paths}
+        add_rpath_map = {(p := pathlib.PurePath(path)).name: p for path in add_rpath_str}
 
         return cls(
             library_whitelist=make_default_library_whitelist(wheel_split),
-            extra_libraries=extra_libs_map,
+            add_rpath=add_rpath_map,
         )
 
     @classmethod
@@ -181,5 +181,5 @@ class ElfDynamicLibRelocate(DynamicLibRelocate[lief.ELF.Binary], FromRecipeConfi
             prefix_path=prefix_path,
             path_transform=path_transform,
             library_whitelist=self.library_whitelist,
-            extra_libraries=self.extra_libraries,
+            add_rpaths=self.add_rpath,
         )
