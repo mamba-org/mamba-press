@@ -210,8 +210,8 @@ def create_wheel_environment(
     # TODO: Refactor transaction to remove Context
     ctx = __get_context()
     ctx.prefix_params.target_prefix = target_prefix
-    #  ctx.link_params.allow_softlinks = False
-    #  ctx.link_params.compile_pyc = False
+    ctx.link_params.allow_softlinks = False
+    ctx.link_params.compile_pyc = False
 
     request = mamba.solver.Request([])
 
