@@ -55,7 +55,7 @@ def main(
         packages_data=packages_data,
     )
 
-    context = mamba_press.execution.create_interpolation_context(working_artifacts)
+    context = mamba_press.execution.create_interpolation_context(working_artifacts, recipe)
     files_filters = mamba_press.factory.make_filter_files(recipe, wheel_split, context)
 
     path_transforms = mamba_press.factory.make_transform_paths(recipe, wheel_split, context)

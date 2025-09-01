@@ -16,9 +16,10 @@ import mamba_press.wheel
 from mamba_press.config import Configurable
 from mamba_press.filter.protocol import FilesFilter, PackagesFilter
 from mamba_press.platform import WheelPlatformSplit
-from mamba_press.recipe import Source
+from mamba_press.recipe import Recipe, Source
 from mamba_press.transform.dynlib.abc import Binary, DynamicLibRelocate
 from mamba_press.transform.protocol import PathTransform
+from mamba_press.typing import Default
 
 __logger__ = logging.getLogger(__name__)
 
@@ -216,11 +217,16 @@ def create_working_env(
 Context = dict[str, str]
 
 
-def create_interpolation_context(working_artifacts: WorkingArtifacts) -> Context:
+def create_interpolation_context(working_artifacts: WorkingArtifacts, recipe: Recipe) -> Context:
     """Create the variable used for interpolation in the configuration."""
+    package_name: str
+    if recipe.target.name != Default:
+        package_name = recipe.target.name
+    else:
+        package_name = str(working_artifacts.unique_package_name)
     return {
         "site_packages": str(working_artifacts.site_packages),
-        "package_name": str(working_artifacts.unique_package_name),
+        "package_name": package_name,
     }
 
 
