@@ -8,7 +8,7 @@ import mamba_press
 def test_package_filter_from_config() -> None:
     """Can be created from a dictionary."""
     filter = mamba_press.filter.ByNamePackagesFilter.from_config(
-        {"to_prune": ["foo>1"]},
+        {"to-prune": ["foo>1"]},
         source=mock.MagicMock(),
         wheel_split=mock.MagicMock(),
     )

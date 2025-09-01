@@ -114,7 +114,7 @@ class Filter:
 
     """
 
-    packages: list[NamedDynamicEntry] | DefaultType = Default
+    packages: list[NamedDynamicEntry | DefaultString] | DefaultType = Default
     files: list[NamedDynamicEntry | DefaultString] | DefaultType = Default
 
 
@@ -160,6 +160,12 @@ class RecipeV0:
         """Parse the yaml recipe data."""
         converter = cattrs.preconf.pyyaml.make_converter()
 
+        def _dynamic_structure[T](data: dict[str, object], type_: type[T]) -> T:
+            return type_(**data)
+
+        converter.register_structure_hook(Filter, _dynamic_structure)
+        converter.register_structure_hook(Transform, _dynamic_structure)
+
         def _union_with_default_structure(o: type) -> object:
             def union_hook(data: object, type_: type[object]) -> object:
                 args = typing.get_args(type_)
@@ -170,8 +176,6 @@ class RecipeV0:
 
                 # Try to coerce into any types by order
                 for t in args:
-                    if t is DynamicParams and isinstance(data, dict):
-                        return data
                     try:
                         return converter.structure(data, t)
                     except Exception:

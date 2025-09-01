@@ -76,14 +76,25 @@ def test_recipe_parse_filter_default() -> None:
             arch: x86_64
         build:
           filter:
-             files:
-               - default
+            files:
+              - default
+            packages:
+              - default
+              - by-name:
+                 to-prune:
+                   - "numpy"
 
     """
 
     recipe = mamba_press.recipe.RecipeV0.parse_yaml(yaml)
     assert recipe.build != mamba_press.recipe.Default
     assert recipe.build.filter != mamba_press.recipe.Default
+
     assert isinstance(recipe.build.filter.files, list)
     assert len(recipe.build.filter.files) == 1
     assert recipe.build.filter.files[0] == "default"
+
+    assert isinstance(recipe.build.filter.packages, list)
+    assert len(recipe.build.filter.packages) == 2
+    assert recipe.build.filter.packages[0] == "default"
+    assert isinstance(recipe.build.filter.packages[1], dict)

@@ -32,9 +32,9 @@ class ByNamePackagesFilter(PackagesFilter, FromRecipeConfig):
         """Construct from simple parameters typically found in configurations."""
         to_prune = [
             mamba.specs.MatchSpec.parse(ms)
-            for ms in mamba_press.recipe.get_param_as("to_prune", params=params, type_=list)
+            for ms in mamba_press.recipe.get_param_as("to-prune", params=params, type_=list)
         ]
-        params.pop("to_prune")
+        params.pop("to-prune")
 
         return cls(
             requested_packages=source.packages,

@@ -37,7 +37,7 @@ def test_make_plugin() -> None:
     wheel_split = unittest.mock.MagicMock()
 
     plugin1 = mamba_press.factory.make_plugin(
-        {"by-name": {"to_prune": ["foo"]}},
+        {"by-name": {"to-prune": ["foo"]}},
         module_name="mamba_press.filter",
         class_suffix="PackagesFilter",
         source=source,
@@ -45,7 +45,7 @@ def test_make_plugin() -> None:
     )
 
     plugin2 = mamba_press.factory.make_plugin(
-        {"mamba_press.filter.ByNamePackagesFilter": {"to_prune": ["foo"]}},
+        {"mamba_press.filter.ByNamePackagesFilter": {"to-prune": ["foo"]}},
         module_name="unused",
         source=source,
         wheel_split=wheel_split,

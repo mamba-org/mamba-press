@@ -49,27 +49,27 @@ def make_plugin(  # type: ignore
     return class_.from_config(params, **kwargs)
 
 
-def make_filter_package_default_config() -> list[NamedDynamicEntry]:
+def make_filter_package_default_config() -> NamedDynamicEntry:
     """Return the default package filter config."""
-    return [
-        {
-            "by-name": {
-                "to_prune": ["python", "python_abi"],
-                "recursive": True,
-            }
-        },
-    ]
+    return {
+        "by-name": {
+            "to-prune": ["python", "python_abi"],
+            "recursive": True,
+        }
+    }
 
 
 def make_filter_packages(recipe: Recipe, wheel_split: WheelPlatformSplit) -> list[PackagesFilter]:
     """Import and instantiate required packages filters."""
-    entries = make_filter_package_default_config()
+    entries: list[NamedDynamicEntry | DefaultString] = [make_filter_package_default_config()]
     if recipe.build != Default and recipe.build.filter != Default and recipe.build.filter.packages != Default:
         entries = recipe.build.filter.packages
 
+    entries = [make_filter_package_default_config() if __is_default_str(e) else e for e in entries]
+
     return [
         make_plugin(
-            e,
+            e,  # type: ignore[arg-type]
             module_name="mamba_press.filter",
             class_suffix="PackagesFilter",
             source=recipe.source,
