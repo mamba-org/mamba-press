@@ -129,10 +129,8 @@ class Transform:
 
     """
 
-    path: list[NamedDynamicEntry] | DefaultType = Default
+    path: list[NamedDynamicEntry | DefaultString] | DefaultType = Default
     dynlib: DynamicParams | DefaultType = Default
-    # If we add general data transform:
-    #  data: list[NamedDynamic] | DefaultType
 
 
 @dataclasses.dataclass

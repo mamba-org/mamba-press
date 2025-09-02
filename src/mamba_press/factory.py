@@ -135,32 +135,32 @@ def make_filter_files(
     ]
 
 
-def make_transform_paths_default_config() -> list[NamedDynamicEntry]:
+def make_transform_paths_default_config() -> NamedDynamicEntry:
     """Return the default path trnasform config."""
-    return [
-        {
-            "explicit": {
-                "mapping": [
-                    {"from": "${{ site_packages }}/", "to": "."},
-                    # Due to lowest specificity, this will only be applied to remaining files
-                    {"from": ".", "to": "${{ package_name }}/data/"},
-                ]
-            }
-        },
-    ]
+    return {
+        "explicit": {
+            "mapping": [
+                {"from": "${{ site_packages }}/", "to": "."},
+                # Due to lowest specificity, this will only be applied to remaining files
+                {"from": ".", "to": "${{ package_name }}/data/"},
+            ]
+        }
+    }
 
 
 def make_transform_paths(
     recipe: Recipe, wheel_split: WheelPlatformSplit, interpolation_context: Mapping[str, str]
 ) -> list[PathTransform]:
     """Import and instantiate required path transforms."""
-    entries = make_transform_paths_default_config()
+    entries: list[NamedDynamicEntry | DefaultString] = [make_transform_paths_default_config()]
     if (
         recipe.build != Default
         and recipe.build.transform != Default
         and recipe.build.transform.path != Default
     ):
         entries = recipe.build.transform.path
+
+    entries = [make_transform_paths_default_config() if __is_default_str(e) else e for e in entries]
 
     entries = mamba_press.recipe.interpolate_params(
         entries,  # type: ignore[arg-type]
@@ -169,7 +169,7 @@ def make_transform_paths(
 
     return [
         make_plugin(
-            e,
+            e,  # type: ignore[arg-type]
             module_name="mamba_press.transform",
             class_suffix="PathTransform",
             source=recipe.source,
