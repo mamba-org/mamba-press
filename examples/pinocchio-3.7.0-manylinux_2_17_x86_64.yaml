@@ -1,0 +1,64 @@
+version: 0
+
+source:
+  python: python=3.13
+  packages:
+    - pinocchio==3.7.0
+    # libcoal missing as direct dependency, add it so it does not get pruned
+    - libcoal
+  constraints:
+    # Force use of specific casadi since we rely on external lib
+    - casadi==3.7.0
+
+target:
+  # Folder in site-package that is the basis for the wheel
+  name: pinocchio
+  platform:
+    os: manylinux
+    version: "2.17"
+    arch: x86_64
+
+build:
+  filter:
+    packages:
+      # Apply the default packages filter
+      - default
+      # Also remove these packages
+      - by-name:
+         recursive: true
+         to-prune:
+            - "numpy"
+            - "casadi"
+            - "scipy"
+    files:
+      # Apply the default files filter
+      - default
+      # Also exclude these globs
+      - unix-glob:
+          exclude: true
+          patterns:
+            - "${{ site_packages }}/coal.dist-info"
+            - "${{ site_packages }}/coal/*.py"
+            - "${{ site_packages }}/coal/*.pyi"
+            - "${{ site_packages }}/eigenpy.dist-info"
+            - "${{ site_packages }}/eigenpy/*.py"
+            - "${{ site_packages }}/eigenpy/*.pyi"
+
+  transform:
+    dynlib:
+      # Add these RPATH to libraries for missing libcasadi
+      add-rpaths:
+        - "../casadi/libcasadi.so.3.7"
+      # Remove any linking to libpython
+      remove-rpaths:
+        - "libpython*.so*"
+    path:
+      # Apply the default path relocation
+      - default
+      # Then also hide leftover coal and eigenpy files into pinochio data folder
+      - explicit:
+          mapping:
+            - from: "coal"
+              to:  "${{ package_name }}/data/coal"
+            - from: "eigenpy"
+              to:  "${{ package_name }}/data/eigenpy"
