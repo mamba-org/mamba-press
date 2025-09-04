@@ -28,7 +28,7 @@ def make_wheel_split(platform: mamba_press.recipe.TargetPlatform) -> mamba_press
     )
 
 
-def main(
+def main_execution(
     execution_params: mamba_press.execution.ExecutionParams,
     channel_params: mamba_press.packages.ChannelParams,
     cache_params: mamba_press.packages.CacheParams,
@@ -160,7 +160,8 @@ def setup_cli_logging(logger: logging.Logger, level: str | int = logging.INFO) -
     logger.addHandler(stream_handler)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Parse CLI options and run the executable."""
     setup_cli_logging(logging.getLogger("mamba_press"))
 
     parser = argparse.ArgumentParser(
@@ -185,9 +186,13 @@ if __name__ == "__main__":
     with open(cli["recipe_path"]) as f:
         recipe = mamba_press.Recipe.parse_yaml(f.read())
 
-    main(
+    main_execution(
         execution_params=execution_params,
         channel_params=channel_params,
         cache_params=cache_params,
         recipe=recipe,
     )
+
+
+if __name__ == "__main__":
+    main()

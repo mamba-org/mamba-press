@@ -20,7 +20,7 @@ def test_libmambapy(tmp_path: pathlib.Path) -> None:
     channel_params = mamba_press.packages.ChannelParams()
     cache_params = mamba_press.packages.CacheParams()
 
-    mamba_press.__main__.main(
+    mamba_press.__main__.main_execution(
         execution_params=execution_params,
         channel_params=channel_params,
         cache_params=cache_params,
