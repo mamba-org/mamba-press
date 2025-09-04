@@ -2,11 +2,14 @@
 Press Conda packages into wheels.
 
 > [!WARNING]
-This project is under development and not usable in any way.
+This project is in alpha, undergoing more broad testing.
 
 ## How to use
-``mamba-press`` is not released yet, right now, only ``pixi run mamba-press`` from
-this repository is possible.
+``mamba-press`` is not released yet.
+
+Run the development version from this repository with [`pixi`](https://pixi.sh/).
+- `pixi run mamba-press` to run the executable.
+- `pixi run mamba-press-dev` adds some options to inspect intermediary files.
 
 ## What it does
 
@@ -25,6 +28,7 @@ The pressing steps are roughly:
 - Upsert wheel metadata.
 - Zip final directory into a wheel file.
 
+## Limitations
 There are incompressible limitations due to the differences between Conda and wheels:
 - Conda can rewrite absolute path present in files, which PyPI clients (``pip``, ``uv``) cannot do.
   We can sometimes convert them to relative paths when we know how they are used, such as when used
@@ -45,22 +49,25 @@ There are incompressible limitations due to the differences between Conda and wh
   into program corruption when exchanging underlying dynamic libraries objects through Python.
 
 There are current limitations to this project:
-- Among all the packages and dependencies, only one can be Python package (this will be the one used for the wheel name).
+- Among all the packages and dependencies, only one can be Python package (this will be the one used
+for the wheel name).
 - This package must ship a ``.dist-info`` (and not a ``.egg-info``).
 - Library sonames/id currently cannot be changed and therefore so do their filename.
-- Due to failure to change name ids on MacOS, absolute dynamic libraries dependencies cannot be replaced with a relative path.
+- Due to failure to change name ids on MacOS, absolute dynamic libraries dependencies cannot be
+replaced with a relative path.
 
-## Missing features
-- [x] Fix mamba cache warnings
-- [x] The version of Python cannot be specified.
-- [x] Resolve lief issues on MacOS.
-- [ ] Actually produce a wheel with correct metadata.
-  - [ ] Right now the manylinux tag passed is not the same as the one suggested by ``auditwheel``
-    due to ``policy.symbol_versions`` not being inspected.
-  - [ ] The ``METADATA`` file is outdated.
-  - [x] The ``RECORD`` file is outdated.
-- [x] Let user configure the file filters and transform via a config file.
-- [x] Let user specify an external lib soname + ``RPATH`` for finding a lib in an external package.
-- [ ] Add Conda Python packages dependencies as PyPI dependencies in wheel (though they could
-  already be specified in metadata from sources such as ``pyproject.toml``).
-- [ ] Add test section (import, auditwheel)
+
+## Development
+[Pixi](https://pixi.sh/) is recommended for development. It is the only tool needed and will
+install all the project dependencies (Python included) automatically.
+
+A number of tasks are provided
+- `pixi run test` to run the test.
+- `pixi run fmt` to run the code formatter.
+- `pixi run fmt` to run the code formatter.
+- `pixi run ci` to combine all these checks in a one stop task.
+
+[Pre-commit](https://pre-commit.com/) is configured with the specificity that it will actually run
+a number of checks trough Pixi.
+It can be set up with
+- `pixi run pre-commit install`
