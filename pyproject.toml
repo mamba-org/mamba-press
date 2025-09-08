@@ -10,7 +10,7 @@ authors = [
 dependencies = []
 
 [build-system]
-requires = ["uv_build>=0.7.19,<0.8.0"]
+requires = ["uv_build>=0.8.10"]
 build-backend = "uv_build"
 
 [project.scripts]
@@ -43,7 +43,7 @@ follow_untyped_imports = true
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "linux-64", "win-64"]
+platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
@@ -106,8 +106,10 @@ pylsp-mypy = ">=0.6.8"
 typos-lsp = "*"
 pre-commit = "*"
 pdbpp = "*"
+commitlint-rs = "*"
 
 [tool.pixi.feature.dev.tasks]
+commitlint = "commitlint --config dev/commitlint.yml"
 pre-commit = "pre-commit"
 mamba-press-dev = """
 rm -rf build && python -m mamba_press --working-dir build/
