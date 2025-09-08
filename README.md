@@ -3,7 +3,7 @@
 Press Conda packages into wheels.
 
 > [!WARNING]
-This project is in alpha, undergoing broader testing.
+> This project is in alpha, undergoing broader testing.
 
 
 ## Installation
@@ -17,6 +17,25 @@ mamba install -c conda-forge mamba-press
 The development version can be run from within the Git repository using [Pixi](https://pixi.sh).
 - `pixi run mamba-press` to run the executable.
 - `pixi run mamba-press-dev` adds some options to inspect intermediary files.
+
+
+## Usage
+The executable must be provided with a recipe file that defines what wheel to build and how.
+It can be invoked with the following, and will place by default the wheel built under the `./dist/`
+directory.
+
+See the [the recipe file documentation](docs/recipe.md), and the [example folder](examples/).
+
+```bash
+mamba-press examples/libmambapy-2.3.1-cp313-manylinux_2_17_x86_64.yaml
+ls dist/
+```
+
+Find all options with
+```bash
+mamba-press --help
+```
+
 
 ## What it does
 The project takes one or more Conda packages to press into a single wheel with all its
