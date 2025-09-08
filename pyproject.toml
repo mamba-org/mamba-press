@@ -43,7 +43,7 @@ follow_untyped_imports = true
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "linux-64"]
+platforms = ["osx-64", "osx-arm64", "linux-64", "win-64"]
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
@@ -56,7 +56,7 @@ wheel = ">=0.45.1"
 auditwheel = "*"
 cattrs = ">=25.1.1"
 pyyaml = ">=6.0.2"
-# py-lief = ">=0.16.6"
+# py-lief = ">=0.16.6"  # Add linux-aarch64 to platforms
 
 [tool.pixi.pypi-dependencies]
 lief = { index = "https://lief.s3-website.fr-par.scw.cloud/latest", version = ">=0.17.0.dev0" }
