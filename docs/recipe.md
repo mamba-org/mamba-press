@@ -132,6 +132,16 @@ plugin-name:
 > [!NOTE]
 Basic plugin can feel verbose at time. We reserve simpler aliases for future recipe format.
 
+Plugin input parameters strings may contain special keys to be substituted by the relevant data
+detected by Mamba-press if the information is known at that time in the execution.
+They use a Jinja-like syntax (but no advanced functionalites exist).
+
+Current keys are:
+- `${{ package_name }}` the name of the unique top level Python package found, or `target.name`.
+- `"${{site_packages }}` the path, relative to the root of the work environment, of the Python
+  installation directory.
+
+
 ## The `build.filter.packages` entry (optional)
 After the Conda environment is solved and before packages are downloaded, a first list
 of [`PackagesFilter`](src/mamba_press/filter/protocol.py) can be specified to remove entire Conda
