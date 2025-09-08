@@ -1,16 +1,16 @@
-name: Test
+name: PR format
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
 
 jobs:
-  test:
-    name: Code checks and tests
+  pr-title:
+    name: Check conventional commit PR title
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,7 +21,5 @@ jobs:
           pixi-version: v0.54.1
           cache: true
           manifest-path: pyproject.toml
-      - name: Run checks through pre-commit
-        run: pixi run pre-commit run --all-files
-      - name: Run tests
-        run: pixi run test-pytest
+      - name: Verify conventional commit conventions on PR title
+        run: echo "${{ github.event.pull_request.title }}" | pixi run commitlint
