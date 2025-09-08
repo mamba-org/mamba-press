@@ -1,5 +1,7 @@
 # Mamba-Press
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/mamba-press.svg)](https://anaconda.org/conda-forge/mamba-press) [![Conda Recipe](https://img.shields.io/badge/recipe-mamba--press-green.svg)](https://github.com/conda-forge/mamba-press-feedstock)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/mamba-press.svg)](https://anaconda.org/conda-forge/mamba-press)
+[![Conda Recipe](https://img.shields.io/badge/recipe-mamba--press-green.svg)](https://github.com/conda-forge/mamba-press-feedstock)
+
 Press Conda packages into wheels.
 
 > [!WARNING]
