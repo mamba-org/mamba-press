@@ -164,7 +164,7 @@ build:
       # Also remove these packages
       - by-name:
          # Also removed their dependencies if not needed by source.packages
-         recursive: true 
+         recursive: true
          to-prune:
             - numpy
             - scipy
@@ -176,7 +176,7 @@ Once the remaining Conda packages are installed in a work environment, a list
 of [`FilesFilter`](src/mamba_press/filter/protocol.py) can be specified to exclude files from the
 wheel based on their path in the work Conda environment.
 The default behaviour is to remove files not needed in a Python context (Conda specific files,
-headers, manuals, CMake files) as well as Python files that must not be in the wheel (`.pyc`, 
+headers, manuals, CMake files) as well as Python files that must not be in the wheel (`.pyc`,
 `dist-info/REQUESTED`...).
 
 Different files filters are chained such that a file must not be filtered out by any filter plugin
