@@ -1,18 +1,45 @@
 # Mamba-Press
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/mamba-press.svg)](https://anaconda.org/conda-forge/mamba-press)
+[![Conda Recipe](https://img.shields.io/badge/recipe-mamba--press-green.svg)](https://github.com/conda-forge/mamba-press-feedstock)
+
 Press Conda packages into wheels.
 
 > [!WARNING]
-This project is in alpha, undergoing more broad testing.
+> This project is in alpha, undergoing broader testing.
 
-## How to use
-``mamba-press`` is not released yet.
 
-Run the development version from this repository with [`pixi`](https://pixi.sh/).
+## Installation
+The latest Mamba-press release can be installed from Conda-Forge with Conda/Mamba/Pixi.
+It ships a ``mamba_press`` Python library and a ``mamba-press`` executable.
+
+```bash
+mamba install -c conda-forge mamba-press
+```
+
+The development version can be run from within the Git repository using [Pixi](https://pixi.sh).
 - `pixi run mamba-press` to run the executable.
 - `pixi run mamba-press-dev` adds some options to inspect intermediary files.
 
-## What it does
 
+## Usage
+The executable must be provided with a recipe file that defines what wheel to build and how.
+It can be invoked with the following, and will place by default the wheel built under the `./dist/`
+directory.
+
+See the [the recipe file documentation](docs/recipe.md), and the [example folder](examples/).
+
+```bash
+mamba-press examples/libmambapy-2.3.1-cp313-manylinux_2_17_x86_64.yaml
+ls dist/
+```
+
+Find all options with
+```bash
+mamba-press --help
+```
+
+
+## What it does
 The project takes one or more Conda packages to press into a single wheel with all its
 dependencies.
 
@@ -27,6 +54,7 @@ The pressing steps are roughly:
   - Change file data (e.g. relocate dynamic libraries that have been moved).
 - Upsert wheel metadata.
 - Zip final directory into a wheel file.
+
 
 ## Limitations
 There are incompressible limitations due to the differences between Conda and wheels:
