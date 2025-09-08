@@ -12,7 +12,7 @@ The file enable deep customization of the different steps used by Mamba-press to
 
 
 ## The `version` entry
-The version is a single digit of the recipe format meant for future proofing.
+The version is asingle digit of the recipe format meant for future proofing.
 Only the version `0` exists for now.
 The version `0` recipe schema may change in a breaking fashion without leading to a version increase.
 
@@ -98,3 +98,143 @@ and vary depending on the operating system.
 > (if at all possible) to infer what OS version will be compatible with the source packages.
 > It is the responsibility of the user to provide the platform tag that express the needs of the
 > wheel that are not vendored.
+
+
+## The `build` section (optional)
+The build section provide deep customization of the Mamba-press execution.
+To do so it relies on plugin to do part of the work.
+
+### Plugins
+There are different types of plugins for different sub-sections but they are all created the same
+way in yaml.
+
+When a plugin is required it can be given by its name.
+Built-in plugin have a custom name that maps to Mamba-press classes, but any plugin (including
+external ones) can be used by giving they full import and class name (such as `pkg.module.Plugin`).
+
+The name is a unique key in a map, whose value is a map of parameter names to values.
+There is no restrictions (except the ones of YAML) to what parameter values can be.
+
+> [!WARNING]
+> Any customization of a plugin automatically remove the default behaviour.
+
+When a plugin is required, the special string `default` can also be provided to explicitly
+ask to use the default plugin(s) with default parameters for that section.
+
+```yaml
+plugin-name:
+  parameter-A: value
+  parameter-B:
+   - 1
+   - 2
+```
+
+> [!NOTE]
+Basic plugin can feel verbose at time. We reserve simpler aliases for future recipe format.
+
+## The `build.filter.packages` entry (optional)
+After the Conda environment is solved and before packages are downloaded, a first list
+of [`PackagesFilter`](src/mamba_press/filter/protocol.py) can be specified to remove entire Conda
+packages from what is included in the wheel.
+
+The default behaviour is to remove Python itself and all its dependencies not (transitively) needed
+by the specified packages in `source.packages`.
+
+Different package filters are chained such that a package must not be filtered out by any filter
+plugin to remain available.
+
+A built-in package filter to remove more Conda packages is available as `by-name`.
+
+```yaml
+build:
+  filter:
+    packages:
+      # Apply the default packages filter (removes Python itself)
+      - default
+      # Also remove these packages
+      - by-name:
+         # Also removed their dependencies if not needed by source.packages
+         recursive: true 
+         to-prune:
+            - numpy
+            - scipy
+```
+
+
+## The `build.filter.files` entry (optional)
+Once the remaining Conda packages are installed in a work environment, a list
+of [`FilesFilter`](src/mamba_press/filter/protocol.py) can be specified to exclude files from the
+wheel based on their path in the work Conda environment.
+The default behaviour is to remove files not needed in a Python context (Conda specific files,
+headers, manuals, CMake files) as well as Python files that must not be in the wheel (`.pyc`, 
+`dist-info/REQUESTED`...).
+
+Different files filters are chained such that a file must not be filtered out by any filter plugin
+to remain.
+
+A built-in files filter to remove files based on glob is available as `unix-glob`.
+
+```yaml
+build:
+  filter:
+    files:
+      # Apply the default files filter
+      - default
+      # Also exclude these globs
+      - unix-glob:
+          # If true exclude the files matching the any of the pattern,
+          # otherwise keep only the files matching any of the pattern.
+          exclude: true
+          patterns:
+            - "lib/libnotneeded*.so*"
+```
+
+
+## The `build.transform.path` entry (optional)
+Files in the work environment need to be moved to create the directory layout needed for the wheel.
+The [`PathTransform`](src/mamba_press/transform/protocol.py) specify how the directory layout
+changes between the work environment and the wheel directory.
+
+The default behaviour is to move everything inside the Python install directory (*e.g.*
+`lib/python3.13/site-packages`) at the root of the wheel and move all the rest inside the main
+wheel package, under a `data` subdirectory (*e.g.* `pkgA/data/lib`...).
+
+Different path transforms are chained so that the downstream transform has to account for the
+transformation of the previous ones.
+
+```yaml
+build:
+  transform:
+    path:
+      # Apply the default path relocation
+      - default
+      # Then also move a library from the inside a Python module to the data dir
+      - explicit:
+          mapping:
+            - from: "${{ package_name }}/module/libsomething.so"
+              to:  "${{ package_name }}/data/lib/libsomething.so"
+```
+
+
+## The `build.transform.dynlib` entry (optional)
+This transformation requires careful handling and is therefore not a plugin.
+When dynamic libraries are moved around, their `RPATH` become invalid, this transoformation
+rewrites the valid path of the files after they have been moved into the wheel folder.
+
+Two options can be used for adding or removing `RPATH`.
+Adding `RPATH` is useful for relying on a dynamic library that will be found on the system, either
+because it is found in another Python package that is already providing wheel, or because it is
+the responsibility of the final user to install it.
+Remove `RPATH` is less common, it may be because it was wrongfully added, or for `libpython` itself.
+
+```yaml
+build:
+  transform:
+    dynlib:
+      # Add these RPATH to libraries found on the system / other wheels
+      add-rpaths:
+        - "../otherwheel/libother.so.3.7"
+      # Python extensions must not link with libpython
+      remove-rpaths:
+        - "libpython*.so*"
+```
