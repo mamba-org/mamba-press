@@ -92,7 +92,7 @@ install all the project dependencies (Python included) automatically.
 A number of tasks are provided
 - `pixi run test` to run the test.
 - `pixi run fmt` to run the code formatter.
-- `pixi run fmt` to run the code formatter.
+- `pixi run check` to run the code checks and linters.
 - `pixi run ci` to combine all these checks in a one stop task.
 
 [Pre-commit](https://pre-commit.com/) is configured with the specificity that it will actually run
