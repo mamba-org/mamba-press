@@ -198,7 +198,17 @@ class Metadata:
         if in_description and description_lines:
             data["description"] = "\n".join(description_lines)
 
-        return cls(**data, **list_data)  # type: ignore[arg-type]
+        # --- NEW FILTERING LOGIC ---
+        
+        # 1. Get all valid field names defined in the dataclass
+        valid_fields = {f.name for f in dataclasses.fields(cls)}
+
+        # 2. Filter the dictionaries to keep only keys that exist in valid_fields
+        filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+        filtered_list_data = {k: v for k, v in list_data.items() if k in valid_fields}
+
+        # 3. Pass the filtered dictionaries
+        return cls(**filtered_data, **filtered_list_data)  # type: ignore[arg-type]
 
     def to_metadata_file(self) -> str:
         """Convert to METADATA file format string."""
